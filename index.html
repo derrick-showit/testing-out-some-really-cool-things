@@ -180,7 +180,9 @@ body.playing .tray { opacity: .25; pointer-events: none; }
           <filter id="lift" x="-30%" y="-30%" width="160%" height="160%">
             <feDropShadow dx="1.2" dy="2" stdDeviation="1.4" flood-color="#2a2014" flood-opacity=".38"/>
           </filter>
-          <pattern id="fiber" patternUnits="userSpaceOnUse" width="120" height="120"><image id="fiberImg" width="120" height="120"/></pattern>
+          <pattern id="fiber0" patternUnits="userSpaceOnUse" width="120" height="120"><image class="fiberImg" width="120" height="120"/></pattern>
+          <pattern id="fiber1" patternUnits="userSpaceOnUse" width="120" height="120" patternTransform="translate(37 53)"><image class="fiberImg" width="120" height="120"/></pattern>
+          <pattern id="fiber2" patternUnits="userSpaceOnUse" width="120" height="120" patternTransform="translate(74 106)"><image class="fiberImg" width="120" height="120"/></pattern>
           <pattern id="grainPat" patternUnits="userSpaceOnUse" width="160" height="160"><image id="grainImg" width="160" height="160"/></pattern>
           <radialGradient id="vig" cx="50%" cy="50%" r="72%">
             <stop offset="55%" stop-color="#2a1d0e" stop-opacity="0"/>
@@ -266,13 +268,14 @@ function outline(shape) {
   }
 }
 const pathCache = new Map();
-function cutPath(shape, seed) {
-  const key = shape + ':' + seed;
+// v picks one of the boil variants: the same piece, re-cut by hand
+function cutPath(shape, seed, v = 0) {
+  const key = shape + ':' + seed + ':' + v;
   if (pathCache.has(key)) return pathCache.get(key);
-  const R = rng(seed), pts = [], corners = new Map();
+  const R = rng(v ? hash(seed, v, 313) : seed), pts = [], corners = new Map();
   const corner = p => {
     const k = p.map(Math.round).join();
-    if (!corners.has(k)) corners.set(k, [p[0] + (R() - .5) * 2.6, p[1] + (R() - .5) * 2.6]);
+    if (!corners.has(k)) corners.set(k, [p[0] + (R() - .5) * 3.4, p[1] + (R() - .5) * 3.4]);
     return corners.get(k);
   };
   for (const s of outline(shape)) {
@@ -280,7 +283,7 @@ function cutPath(shape, seed) {
       // scissors drift a little along a straight cut
       const a = corner(s.a), b = corner(s.b);
       const dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy), nx = -dy / len, ny = dx / len;
-      const n = Math.max(3, Math.round(len / 7)), ph = R() * 6.28, fr = .6 + R() * 1.6, amp = .4 + R() * .6;
+      const n = Math.max(3, Math.round(len / 7)), ph = R() * 6.28, fr = .6 + R() * 1.6, amp = .5 + R() * .8;
       for (let i = 0; i < n; i++) {
         const t = i / n, w = i === 0 ? 0 : amp * Math.sin(ph + t * fr * Math.PI) + (R() - .5) * .55;
         pts.push([a[0] + dx * t + nx * w, a[1] + dy * t + ny * w]);
@@ -293,7 +296,7 @@ function cutPath(shape, seed) {
       const drift = R() * 6.28;
       for (let i = full ? 0 : 1; i < n; i++) {
         const t = s.a0 + span * (i + (R() - .5) * .35) / n;
-        const rr = s.r + Math.sin(drift + i * .7) * .6 + (R() - .5) * .9;
+        const rr = s.r + Math.sin(drift + i * .7) * .8 + (R() - .5) * 1.1;
         pts.push([s.cx + rr * Math.cos(t), s.cy + rr * Math.sin(t)]);
       }
     }
@@ -303,7 +306,7 @@ function cutPath(shape, seed) {
   return d;
 }
 const p2dCache = new Map();
-const path2d = p => { const k = p.shape + ':' + p.seed; if (!p2dCache.has(k)) p2dCache.set(k, new Path2D(cutPath(p.shape, p.seed))); return p2dCache.get(k); };
+const path2d = (p, v) => { const k = p.shape + ':' + p.seed + ':' + v; if (!p2dCache.has(k)) p2dCache.set(k, new Path2D(cutPath(p.shape, p.seed, v))); return p2dCache.get(k); };
 
 /* ---------- paper textures ---------- */
 function canvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
@@ -356,7 +359,8 @@ function makeGrain() {
 }
 const paperC = makePaper(), fiberC = makeFiber(), grainC = makeGrain();
 $('paper').setAttribute('href', paperC.toDataURL('image/jpeg', .9));
-$('fiberImg').setAttribute('href', fiberC.toDataURL());
+const fiberURL = fiberC.toDataURL();
+document.querySelectorAll('.fiberImg').forEach(i => i.setAttribute('href', fiberURL));
 $('grainImg').setAttribute('href', grainC.toDataURL());
 
 /* ---------- state ---------- */
@@ -416,11 +420,13 @@ function camJit(fi, loop) {
   const R = rng(hash(fi, loop, 991));
   return { dx: (R() - .5) * 4, dy: (R() - .5) * 3.2, dr: (R() - .5) * .5, b: .93 + R() * .1, gx: R() * 160, gy: R() * 160 };
 }
+let boil = 0;
+const BOIL_VARIANTS = 3;
 function pieceSVG(p, j, faded) {
-  const d = cutPath(p.shape, p.seed);
+  const d = cutPath(p.shape, p.seed, boil);
   const x = p.x + (j ? j.dx : 0), y = p.y + (j ? j.dy : 0), r = p.r + (j ? j.dr : 0);
   return `<g class="pc" data-id="${p.id}" filter="url(#lift)"${faded ? ' opacity=".35"' : ''}><g transform="translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${r.toFixed(2)}) scale(${p.s})">` +
-    `<path d="${d}" fill="${p.color}"/><path d="${d}" fill="url(#fiber)"/>` +
+    `<path d="${d}" fill="${p.color}"/><path d="${d}" fill="url(#fiber${boil})"/>` +
     `<path d="${d}" fill="none" stroke="rgba(255,255,255,.32)" stroke-width="1" vector-effect="non-scaling-stroke"/></g></g>`;
 }
 const plainSVG = p => `<path transform="translate(${p.x.toFixed(1)} ${p.y.toFixed(1)}) rotate(${p.r.toFixed(1)}) scale(${p.s})" d="${cutPath(p.shape, p.seed)}" fill="${p.color}"/>`;
@@ -625,6 +631,7 @@ function play() {
   tick();
 }
 function tick() {
+  boil = (boil + 1) % BOIL_VARIANTS;
   renderStage(pf, true, loopN); markStrip(pf);
   pf++; if (pf >= S.frames.length) { pf = 0; loopN++; }
   timer = setTimeout(tick, 1000 / S.fps);
@@ -636,6 +643,13 @@ function stop() {
   renderStage(); markStrip(S.cur);
 }
 $('playBtn').addEventListener('click', () => playing ? stop() : play());
+// the page keeps boiling while you work, unless the viewer asked for less motion
+const calm = matchMedia('(prefers-reduced-motion: reduce)');
+setInterval(() => {
+  if (playing || document.hidden) return;
+  if (calm.matches) { if (boil) { boil = 0; renderStage(); } return; }
+  boil = (boil + 1) % BOIL_VARIANTS; renderStage();
+}, 1000 / 8);
 $('fpsBtn').addEventListener('click', () => {
   S.fps = { 6: 8, 8: 12, 12: 6 }[S.fps]; $('fpsBtn').textContent = S.fps + ' fps'; persist();
 });
@@ -695,7 +709,7 @@ function toast(msg, hold) {
 
 /* ---------- GIF export ---------- */
 const dlPromise = window.claude && window.claude.use ? window.claude.use('downloads').catch(() => null) : Promise.resolve(null);
-function drawFrame(ctx, fi, loop) {
+function drawFrame(ctx, fi, loop, v = 0) {
   const cw = ctx.canvas.width, ch = ctx.canvas.height, k = cw / W, c = camJit(fi, loop);
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'source-over';
   ctx.fillStyle = '#efebe1'; ctx.fillRect(0, 0, cw, ch);
@@ -703,9 +717,9 @@ function drawFrame(ctx, fi, loop) {
   ctx.translate(400 + c.dx, 300 + c.dy); ctx.rotate(c.dr * Math.PI / 180); ctx.translate(-400, -300);
   ctx.drawImage(paperC, -12, -9, 824, 618);
   const base = ctx.getTransform(), fib = ctx.createPattern(fiberC, 'repeat');
-  fib.setTransform(new DOMMatrix().scale(.5));
+  fib.setTransform(new DOMMatrix().translate(v * 37, v * 53).scale(.5));
   for (const p of S.frames[fi].pieces) {
-    const j = jit(p, fi, loop), path = path2d(p);
+    const j = jit(p, fi, loop), path = path2d(p, v);
     ctx.setTransform(base);
     ctx.translate(p.x + j.dx, p.y + j.dy); ctx.rotate((p.r + j.dr) * Math.PI / 180); ctx.scale(p.s, p.s);
     ctx.shadowColor = 'rgba(42,32,20,.38)'; ctx.shadowBlur = 2.8 * k; ctx.shadowOffsetX = 1.2 * k; ctx.shadowOffsetY = 2 * k;
@@ -717,9 +731,9 @@ function drawFrame(ctx, fi, loop) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   const g = ctx.createPattern(grainC, 'repeat'); g.setTransform(new DOMMatrix().translate(c.gx, c.gy));
   ctx.globalAlpha = .9; ctx.fillStyle = g; ctx.fillRect(0, 0, cw, ch); ctx.globalAlpha = 1;
-  const v = ctx.createRadialGradient(cw / 2, ch / 2, 0, cw / 2, ch / 2, Math.hypot(cw, ch) * .52);
-  v.addColorStop(.55, 'rgba(42,29,14,0)'); v.addColorStop(1, 'rgba(42,29,14,.32)');
-  ctx.fillStyle = v; ctx.fillRect(0, 0, cw, ch);
+  const vg = ctx.createRadialGradient(cw / 2, ch / 2, 0, cw / 2, ch / 2, Math.hypot(cw, ch) * .52);
+  vg.addColorStop(.55, 'rgba(42,29,14,0)'); vg.addColorStop(1, 'rgba(42,29,14,.32)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, cw, ch);
   if (c.b < 1) { ctx.fillStyle = `rgba(20,14,8,${(1 - c.b).toFixed(3)})`; ctx.fillRect(0, 0, cw, ch); }
   else { ctx.fillStyle = `rgba(255,246,228,${((c.b - 1) * 1.5).toFixed(3)})`; ctx.fillRect(0, 0, cw, ch); }
 }
@@ -798,7 +812,7 @@ async function exportGif() {
     const cw = 640, ch = 480, c = canvas(cw, ch), ctx = c.getContext('2d', { willReadFrequently: true });
     const n = S.frames.length, loops = Math.max(1, Math.min(3, Math.ceil(16 / n))), total = n * loops, images = [];
     for (let L = 0; L < loops; L++) for (let i = 0; i < n; i++) {
-      drawFrame(ctx, i, L); images.push(ctx.getImageData(0, 0, cw, ch).data);
+      drawFrame(ctx, i, L, images.length % BOIL_VARIANTS); images.push(ctx.getImageData(0, 0, cw, ch).data);
       toast(`Developing ${images.length} / ${total}`, true); await pause();
     }
     const pal = buildPalette(images), map = new Int16Array(32768).fill(-1), idx = [];
