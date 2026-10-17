@@ -89,6 +89,16 @@ test('login checks the password, rate limits, and logout ends the session', asyn
   assert.equal((await d.post('/api/auth/login', { email: 'olu@example.com', password: 'olu has a long password' })).status, 429);
 });
 
+test('teammates edit their own profile, but not each other’s', async () => {
+  const r = await maya.put(`/api/members/${ids.maya}`, { name: 'Maya C.', role: 'Brand director', color: '#0E7490' });
+  assert.equal(r.status, 200);
+  assert.deepEqual([r.data.member.name, r.data.member.role, r.data.member.color], ['Maya C.', 'Brand director', '#0e7490']);
+  assert.equal((await maya.put(`/api/members/${ids.maya}`, { color: 'red; background:url(x)' })).status, 400);
+  assert.equal((await maya.put(`/api/members/${ids.derrick}`, { name: 'Hacked' })).status, 403);
+  assert.equal((await maya.put(`/api/members/${ids.maya}`, { isAdmin: true })).data.member.isAdmin, false); // only admins grant admin
+  await maya.put(`/api/members/${ids.maya}`, { name: 'Maya Chen' });
+});
+
 test('mutations without the Postboard header are refused', async () => {
   const r = await admin.post('/api/posts', { title: 'x' }, { 'X-Postboard': '' });
   assert.equal(r.status, 403);

@@ -29,6 +29,16 @@ Copy `.env.example` to `.env` to configure the server. Data lives in `./data` (S
 - Everyone can draft, comment, chat and answer DMs. Only admins can invite people, change approval rules and connect channels.
 - Only the post's approvers can approve it. Editing an approved post sends it back for review.
 
+## Settings
+
+**Settings** in the sidebar has five tabs. You can also click your name at the bottom of the sidebar to open your profile.
+
+- **Profile:** your name, role and avatar color, plus your password and sign out in the server version.
+- **Appearance:** System, Light or Dark. The choice is saved in this browser.
+- **Workspace:** approval rules, campaigns and labels.
+- **Team:** teammates, invites and who's online.
+- **Channels:** connect each network.
+
 ## Team chat
 
 Channels (`#general` and `#content-review` to start, and anyone can add more) and one-to-one messages between teammates. Messages arrive live, the sidebar shows who is online, unread counts follow each person, and `@Firstname` sends a notification.

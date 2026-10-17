@@ -112,12 +112,14 @@ export function updateMember(app, admin, id, body) {
   const u = app.db.prepare('SELECT * FROM users WHERE id = ?').get(id); if (!u) fail(404, 'No teammate with that id.');
   const name = 'name' in body ? str(body.name, 80).trim() || u.name : u.name;
   const role = 'role' in body ? str(body.role, 60).trim() || u.role : u.role;
+  if ('color' in body && !/^#[0-9a-f]{6}$/i.test(String(body.color))) fail(400, 'Pick a color from the list.');
+  const color = 'color' in body ? String(body.color).toLowerCase() : u.color;
   let isAdmin = u.is_admin;
   if ('isAdmin' in body && admin.is_admin) {
     isAdmin = body.isAdmin ? 1 : 0;
     if (!isAdmin && app.db.prepare('SELECT COUNT(*) n FROM users WHERE is_admin = 1 AND id != ?').get(id).n === 0) fail(400, 'The workspace needs at least one admin.');
   }
-  app.db.prepare('UPDATE users SET name = ?, role = ?, is_admin = ? WHERE id = ?').run(name, role, isAdmin, id);
+  app.db.prepare('UPDATE users SET name = ?, role = ?, color = ?, is_admin = ? WHERE id = ?').run(name, role, color, isAdmin, id);
   return app.db.prepare('SELECT * FROM users WHERE id = ?').get(id);
 }
 export function removeMember(app, admin, id) {

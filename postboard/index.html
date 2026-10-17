@@ -443,6 +443,44 @@ details.tester form .full { grid-column: 1 / -1; }
 .me-chip .nm b { display: block; font-weight: 700; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .me-chip .nm span { font-size: 13px; color: var(--muted); }
 
+/* ---------- settings ---------- */
+.settings-tabs { margin-top: -8px; }
+.settings-body { display: flex; flex-direction: column; gap: 20px; max-width: 920px; }
+.settings-body.wide { max-width: none; }
+.set-row { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+.set-row > div:first-child { min-width: 0; flex: 1; }
+.set-desc { color: var(--muted); font-size: 15px; margin-top: 4px; }
+.profile-head { display: flex; align-items: center; gap: 18px; }
+.profile-head .avatar { width: 64px; height: 64px; font-size: 22px; }
+.profile-head b { display: block; font-size: 19px; font-weight: 700; }
+.swatches { display: flex; gap: 12px; flex-wrap: wrap; }
+.swatch { width: 34px; height: 34px; border-radius: 50%; border: 0; padding: 0; box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px transparent; }
+.swatch.on { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--fg); }
+.theme-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; }
+.theme-opt { border: 2px solid var(--line); border-radius: 16px; padding: 12px 12px 16px; background: var(--surface); text-align: left; display: flex; flex-direction: column; gap: 14px; color: var(--fg); }
+.theme-opt:hover { border-color: var(--line-strong); }
+.theme-opt.on { border-color: var(--accent); }
+.theme-opt .nm { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 16px; font-weight: 700; padding: 0 4px; }
+.theme-opt .nm small { display: block; font-size: 13.5px; font-weight: 500; color: var(--muted); margin-top: 2px; }
+.theme-opt .tick { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line-strong); flex: none; display: grid; place-items: center; }
+.theme-opt.on .tick { border-color: var(--accent); background: var(--accent); color: var(--accent-fg); }
+.theme-opt .tick svg { width: 20px; height: 20px; }
+/* The previews picture each theme, so they use that theme's colors on purpose. */
+.mini { height: 118px; border-radius: 10px; overflow: hidden; display: grid; grid-template-columns: 28% 1fr; }
+.mini .ms { padding: 10px 8px; display: flex; flex-direction: column; gap: 6px; }
+.mini .mm { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.mini i { display: block; height: 7px; border-radius: 4px; }
+.mini .card-m { border-radius: 7px; padding: 8px; display: flex; flex-direction: column; gap: 5px; }
+.mini.light { background: #f3f4f7; } .mini.light .ms { background: #fff; } .mini.light .ms i, .mini.light .card-m i { background: #d4d9e1; } .mini.light .card-m { background: #fff; box-shadow: 0 1px 2px rgba(24,34,58,.08); } .mini.light .mm > i { background: #18223a; width: 55%; }
+.mini.dark { background: #0f1116; } .mini.dark .ms { background: #161922; } .mini.dark .ms i, .mini.dark .card-m i { background: #353b4b; } .mini.dark .card-m { background: #1e2230; } .mini.dark .mm > i { background: #e8eaf0; width: 55%; }
+.mini i.acc { background: #2f45d8 !important; width: 40%; }
+.mini.dark i.acc { background: #7d8cff !important; }
+.mini-split { position: relative; height: 118px; border-radius: 10px; overflow: hidden; }
+.mini-split .mini { position: absolute; inset: 0; }
+.mini-split .mini.dark { clip-path: polygon(62% 0, 100% 0, 100% 100%, 38% 100%); }
+.me-chip button.me-open { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; border: 0; background: none; padding: 6px; margin: -6px; border-radius: 10px; text-align: left; color: inherit; }
+.me-chip button.me-open:hover { background: var(--surface-2); }
+
 /* ---------- sign in ---------- */
 .auth { min-height: 100%; display: grid; place-items: center; padding-block: 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); grid-column: 1 / -1; }
 .auth-card { width: min(440px, 100%); display: flex; flex-direction: column; gap: 18px; padding: 40px; }
@@ -705,9 +743,22 @@ function seedTalk() {
 
 
 let MODE = 'local'; // 'server' when this page is served by the Postboard server and signed in
+
+/* Theme: 'system' follows the device; 'light' and 'dark' pin it. Saved per browser. */
+const THEME_KEY = 'postboard.theme';
+const hostTheme = document.documentElement.getAttribute('data-theme'); // a viewer may set this before we load
+function themePref() { try { return localStorage.getItem(THEME_KEY) || 'system'; } catch (e) { return 'system'; } }
+function applyTheme(pref = themePref()) {
+  const root = document.documentElement;
+  if (pref === 'light' || pref === 'dark') root.setAttribute('data-theme', pref);
+  else if (hostTheme) root.setAttribute('data-theme', hostTheme);
+  else root.removeAttribute('data-theme');
+}
+function setTheme(pref) { try { localStorage.setItem(THEME_KEY, pref); } catch (e) {} applyTheme(pref); }
+applyTheme();
 const UI = { view: 'calendar', layout: 'calendar', calMode: '2w', cursor: Date.now(), filters: { ch: '', label: '', status: '' }, draft: null, pvTab: null, sideTab: 'preview', profPf: 'instagram', profTab: 'grid', storyIdx: 0, range: 30, anPf: '',
-  chatId: null, threadId: null, msgPlatform: '', msgStatus: 'open', online: [], meUser: null, lastInvite: null };
-try { const v = sessionStorage.getItem('postboard.view'); if (v) UI.view = v; } catch (e) {}
+  chatId: null, threadId: null, msgPlatform: '', msgStatus: 'open', online: [], meUser: null, lastInvite: null, settingsTab: 'profile', profileColor: null };
+try { const v = sessionStorage.getItem('postboard.view'); if (v) UI.view = v; const t = sessionStorage.getItem('postboard.settingsTab'); if (t) UI.settingsTab = t; } catch (e) {}
 if (/^#[a-z]+$/.test(location.hash)) UI.view = location.hash.slice(1);
 
 /* ---------- derived ---------- */
@@ -793,13 +844,14 @@ function replyWindow(t) {
 }
 
 function render() {
-  try { sessionStorage.setItem('postboard.view', UI.view); } catch (e) {}
+  if (UI.view === 'channels' || UI.view === 'workspace') { UI.settingsTab = UI.view; UI.view = 'settings'; } // older links and the OAuth return
   if (!VIEWS[UI.view]) UI.view = 'calendar';
+  try { sessionStorage.setItem('postboard.view', UI.view); sessionStorage.setItem('postboard.settingsTab', UI.settingsTab); } catch (e) {}
   const pend = S.posts.filter(needsMyApproval).length; const un = unreadCount();
   const nav = (id, icon, text, count) => `<button class="nav${UI.view === id ? ' on' : ''}" data-act="view" data-v="${id}">${ICON[icon]}<span>${text}</span>${count ? `<span class="count">${count}</span>` : ''}</button>`;
   const me = member(S.me);
   const who = MODE === 'server'
-    ? `<div class="me-chip"><span class="av-wrap">${avatar(S.me, 28)}<i class="presence on"></i></span><span class="nm"><b>${h(me.name)}</b><span>${h(me.role)}</span></span><button class="btn ghost" data-act="logout" style="padding:5px 8px;font-size:13.5px">Log out</button></div>`
+    ? `<div class="me-chip"><button class="me-open" data-act="open-profile" aria-label="Your profile settings"><span class="av-wrap">${avatar(S.me, 28)}<i class="presence on"></i></span><span class="nm"><b>${h(me.name)}</b><span>${h(me.role)}</span></span></button><button class="btn ghost" data-act="logout" style="padding:5px 8px;font-size:13.5px">Log out</button></div>`
     : `<span class="eyebrow">Acting as</span><select id="me-select" aria-label="Acting as">${S.members.map(m => `<option value="${m.id}"${m.id === S.me ? ' selected' : ''}>${h(m.name)} · ${h(m.role)}</option>`).join('')}</select>`;
   // keep typed text, focus and scroll positions across a re-render
   const keep = {};
@@ -817,7 +869,7 @@ function render() {
       <div class="nav-group"><span class="eyebrow">Talk</span>${nav('chat', 'chat', 'Team chat', chatUnreadTotal())}${nav('messages', 'send', 'Messages', dmUnreadTotal())}</div>
       <div class="nav-group"><span class="eyebrow">Preview</span>${nav('profile', 'grid', 'Grid & profile')}</div>
       <div class="nav-group"><span class="eyebrow">Measure</span>${nav('analytics', 'chart', 'Analytics')}</div>
-      <div class="nav-group"><span class="eyebrow">Settings</span>${nav('channels', 'plug', 'Channels')}${nav('workspace', 'cog', 'Workspace')}</div>
+      <div class="nav-group"><span class="eyebrow">Settings</span>${nav('settings', 'cog', 'Settings')}</div>
       <div class="whoami">${who}</div>
     </aside>
     <main class="main" id="main">${VIEWS[UI.view]()}</main>`;
@@ -829,7 +881,7 @@ function render() {
 }
 let renderQueued = false;
 function scheduleRender() { if (renderQueued) return; renderQueued = true; requestAnimationFrame(() => { renderQueued = false; render(); }); }
-const VIEWS = { calendar: viewCalendar, approvals: viewApprovals, inbox: viewInbox, chat: viewChat, messages: viewMessages, analytics: viewAnalytics, profile: viewProfile, channels: viewChannels, workspace: viewWorkspace };
+const VIEWS = { calendar: viewCalendar, approvals: viewApprovals, inbox: viewInbox, chat: viewChat, messages: viewMessages, analytics: viewAnalytics, profile: viewProfile, settings: viewSettings };
 
 /* ---------- team chat ---------- */
 function viewChat() {
@@ -1191,7 +1243,7 @@ function storyFrame(p, pf, idx, total) {
 }
 
 /* ---------- channels ---------- */
-function viewChannels() {
+function settingsChannels() {
   const server = MODE === 'server'; const admin = isAdmin(); const ro = admin ? '' : ' disabled';
   const card = c => {
     const P = PLATFORMS[c], a = S.accounts[c];
@@ -1229,43 +1281,101 @@ function viewChannels() {
   const note = server
     ? `Live channels post and reply for real. Sandbox channels record what would have been sent, which is useful for trying the workflow. ${admin ? '' : 'Only admins can change channels.'}`
     : 'Discord posts go out for real through a channel webhook. The other networks need the Postboard server, which holds each network’s login. Until then their sends are simulated.';
-  return `<div class="page"><div class="row spread"><h1>Channels</h1></div><div class="note">${ICON.info}${note}</div><div class="ch-grid">${PF_IDS.map(card).join('')}</div></div>`;
+  return `<div class="note">${ICON.info}${note}</div><div class="ch-grid">${PF_IDS.map(card).join('')}</div>`;
 }
 
 /* ---------- workspace ---------- */
-function viewWorkspace() {
+/* ---------- settings ---------- */
+const SWATCHES = ['#2f45d8', '#c2410c', '#18804f', '#8b3fd1', '#0e7490', '#b45309', '#be185d', '#4d7c0f'];
+const SETTINGS_TABS = [['profile', 'Profile'], ['appearance', 'Appearance'], ['workspace', 'Workspace'], ['team', 'Team'], ['channels', 'Channels']];
+
+function viewSettings() {
+  if (!SETTINGS_TABS.some(([k]) => k === UI.settingsTab)) UI.settingsTab = 'profile';
+  const tab = UI.settingsTab;
+  const body = { profile: settingsProfile, appearance: settingsAppearance, workspace: settingsWorkspace, team: settingsTeam, channels: settingsChannels }[tab]();
+  return `<div class="page">
+    <h1>Settings</h1>
+    <div class="tabs settings-tabs" role="tablist">${SETTINGS_TABS.map(([k, v]) => `<button role="tab" aria-selected="${k === tab}" class="${k === tab ? 'on' : ''}" data-act="settings-tab" data-v="${k}">${v}</button>`).join('')}</div>
+    <div class="settings-body${tab === 'channels' ? ' wide' : ''}">${body}</div>
+  </div>`;
+}
+
+function settingsProfile() {
+  const server = MODE === 'server';
+  const me = member(S.me);
+  const color = UI.profileColor || me.color;
+  const preview = `<span class="avatar" style="background:${color}">${h(initials(me.name))}</span>`;
+  return `
+    <div class="panel pad stack" style="gap:24px">
+      <div class="profile-head">${preview}<div><b>${h(me.name)}</b><span class="muted">${h(me.role)}${me.isAdmin ? ' · Admin' : ''}${server && me.email ? ` · ${h(me.email)}` : ''}</span></div></div>
+      <form class="stack" id="profile-form" style="gap:20px">
+        <div class="two">
+          <div class="field"><label for="pf-name">Name</label><input class="input" id="pf-name" value="${h(me.name)}" autocomplete="name" required data-keep="profile"></div>
+          <div class="field"><label for="pf-role">Role</label><input class="input" id="pf-role" value="${h(me.role)}" placeholder="Social manager" data-keep="profile"></div>
+        </div>
+        <div class="field"><span class="label">Avatar color</span>
+          <div class="swatches" role="radiogroup" aria-label="Avatar color">${SWATCHES.map(c => `<button type="button" class="swatch${c === color ? ' on' : ''}" style="background:${c}" data-act="pick-color" data-v="${c}" role="radio" aria-checked="${c === color}" aria-label="Color ${c}"></button>`).join('')}</div></div>
+        <div class="row"><button class="btn primary">Save profile</button>${server ? '' : '<span class="muted" style="font-size:14.5px">In this standalone file, switch teammates from “Acting as” in the sidebar.</span>'}</div>
+      </form>
+    </div>
+    ${server ? `
+    <div class="panel pad stack" style="gap:18px">
+      <div><h2>Password</h2><div class="set-desc">Use at least 10 characters.</div></div>
+      <form class="two" id="change-pw">
+        <div class="field"><label for="pw-cur">Current password</label><input class="input" type="password" id="pw-cur" autocomplete="current-password" required data-keep="no"></div>
+        <div class="field"><label for="pw-new">New password</label><input class="input" type="password" id="pw-new" autocomplete="new-password" minlength="10" required data-keep="no"></div>
+        <div><button class="btn">Change password</button></div>
+      </form>
+    </div>
+    <div class="panel pad set-row"><div><h2>Sign out</h2><div class="set-desc">Ends your session in this browser.</div></div><button class="btn" data-act="logout">Log out</button></div>` : ''}`;
+}
+
+function settingsAppearance() {
+  const pref = themePref();
+  const mini = kind => `<div class="mini ${kind}"><div class="ms"><i class="acc"></i><i></i><i></i><i></i></div><div class="mm"><i></i><div class="card-m"><i class="acc"></i><i></i></div><div class="card-m"><i></i><i style="width:60%"></i></div></div></div>`;
+  const opt = (k, label, sub, pic) => `<button class="theme-opt${pref === k ? ' on' : ''}" data-act="theme" data-v="${k}" role="radio" aria-checked="${pref === k}">
+    ${pic}<span class="nm"><span>${label}<small>${sub}</small></span><span class="tick">${pref === k ? ICON.check.replace('stroke-width="1.8"', 'stroke-width="3"').replace('<circle cx="12" cy="12" r="8.5"/>', '') : ''}</span></span></button>`;
+  return `
+    <div class="panel pad stack" style="gap:20px">
+      <div><h2>Theme</h2><div class="set-desc">Choose how Postboard looks in this browser.</div></div>
+      <div class="theme-opts" role="radiogroup" aria-label="Theme">
+        ${opt('system', 'System', 'Matches your device', `<div class="mini-split">${mini('light')}${mini('dark')}</div>`)}
+        ${opt('light', 'Light', 'Always light', mini('light'))}
+        ${opt('dark', 'Dark', 'Always dark', mini('dark'))}
+      </div>
+    </div>`;
+}
+
+function settingsWorkspace() {
   const server = MODE === 'server'; const admin = isAdmin();
-  const team = S.members.map(m => `<tr><td style="width:36px"><span class="av-wrap">${avatar(m.id, 28)}${server ? `<i class="presence${isOnline(m.id) ? ' on' : ''}"></i>` : ''}</span></td>
-    <td><b style="font-weight:500">${h(m.name)}</b>${m.id === S.me ? ' <span class="muted">(you)</span>' : ''}${server ? `<div class="muted" style="font-size:13.5px">${h(m.email || '')}</div>` : ''}</td>
+  return `
+    <div class="panel pad stack" style="gap:20px">
+      <div class="set-row"><div><h2>Require approval</h2><div class="set-desc">Posts must be approved before they can be scheduled or sent.</div></div>
+        <button class="switch${S.settings.requireApproval ? ' on' : ''}" data-act="toggle-approval" aria-label="Require approval" aria-pressed="${S.settings.requireApproval}"${admin ? '' : ' disabled'}></button></div>
+      <div class="field"><span class="label">Default approvers</span><div class="check-list">${S.members.map(m => `<label class="chk${S.settings.defaultApprovers.includes(m.id) ? ' on' : ''}"><input type="checkbox" data-act="def-approver" value="${m.id}"${S.settings.defaultApprovers.includes(m.id) ? ' checked' : ''}${admin ? '' : ' disabled'}>${h(m.name)}</label>`).join('')}</div></div>
+      ${admin ? '' : '<div class="note">' + ICON.info + 'Only admins can change approval rules.</div>'}
+    </div>
+    <div class="panel"><div class="pad"><h2>Campaigns</h2><div class="set-desc">Shown as bands across the calendar.</div></div>
+      <div class="table-wrap"><table><tbody>${S.campaigns.map(c => `<tr><td><span class="banner" style="--h:${c.h};display:inline-block;margin:0">${h(c.name)}</span></td><td class="mono muted">${c.start} → ${c.end}</td><td style="text-align:right"><button class="btn icon ghost" data-act="del-camp" data-id="${c.id}" aria-label="Delete ${h(c.name)}">${ICON.trash}</button></td></tr>`).join('') || '<tr><td class="muted">No campaigns yet.</td></tr>'}</tbody></table></div>
+      <form class="pad row" id="add-camp"><input class="input" id="cp-name" placeholder="Campaign name" aria-label="Campaign name" style="flex:2;min-width:160px" required data-keep="no"><input class="input" type="date" id="cp-start" aria-label="Start date" required style="flex:1;min-width:150px" data-keep="no"><input class="input" type="date" id="cp-end" aria-label="End date" required style="flex:1;min-width:150px" data-keep="no"><button class="btn">Add campaign</button></form></div>
+    <div class="panel"><div class="pad" style="padding-bottom:16px"><h2>Labels</h2><div class="set-desc">Tag posts so the calendar and filters stay organized.</div></div>
+      <div class="pad row" style="padding-top:0">${S.labels.map(l => `<span class="row" style="gap:2px">${tagHTML(l.id)}<button class="btn icon ghost" style="padding:4px" data-act="del-label" data-id="${l.id}" aria-label="Delete ${h(l.name)}">${ICON.x.replace('<svg', '<svg width="13" height="13"')}</button></span>`).join('')}</div>
+      <form class="pad row" id="add-label" style="padding-top:0"><input class="input" id="lb-name" placeholder="New label" aria-label="New label" style="flex:1" required data-keep="no"><button class="btn">Add label</button></form></div>
+    ${server ? '' : `<div class="panel pad set-row"><div><h2>Sample data</h2><div class="set-desc">Everything is saved in this browser.</div></div><button class="btn danger" data-act="reset">Reset to sample data</button></div>`}`;
+}
+
+function settingsTeam() {
+  const server = MODE === 'server'; const admin = isAdmin();
+  const team = S.members.map(m => `<tr><td style="width:44px"><span class="av-wrap">${avatar(m.id, 34)}${server ? `<i class="presence${isOnline(m.id) ? ' on' : ''}"></i>` : ''}</span></td>
+    <td><b style="font-weight:600">${h(m.name)}</b>${m.id === S.me ? ' <span class="muted">(you)</span>' : ''}${server ? `<div class="muted" style="font-size:14px">${h(m.email || '')}</div>` : ''}</td>
     <td class="muted">${h(m.role)}${m.isAdmin ? ' · Admin' : ''}</td>
     <td style="text-align:right;white-space:nowrap">${server && m.active === false ? `<span class="pill in_review">Invite pending</span> ${admin ? `<button class="btn ghost" data-act="reinvite" data-id="${m.id}">New link</button>` : ''}` : ''}${server && admin && m.id !== S.me ? `<button class="btn icon ghost" data-act="rm-member" data-id="${m.id}" aria-label="Remove ${h(m.name)}">${ICON.trash}</button>` : ''}</td></tr>`).join('');
-  const invite = UI.lastInvite ? `<div class="pad" style="padding-top:0"><div class="invite-box"><span>Send ${h(UI.lastInvite.name)} this link. It works once and expires in 7 days.</span></div><div class="invite-box" style="margin-top:6px"><code id="invite-url">${h(UI.lastInvite.url)}</code><button class="btn" data-act="copy-invite">${ICON.copy}Copy</button></div></div>` : '';
+  const invite = UI.lastInvite ? `<div class="pad stack" style="padding-top:0;gap:8px"><div class="invite-box"><span>Send ${h(UI.lastInvite.name)} this link. It works once and expires in 7 days.</span></div><div class="invite-box"><code id="invite-url">${h(UI.lastInvite.url)}</code><button class="btn" data-act="copy-invite">${ICON.copy}Copy</button></div></div>` : '';
   const addForm = !admin ? '' : server
-    ? `<form class="pad row" id="add-member"><input class="input" id="nm-name" placeholder="Name" style="flex:1;min-width:110px" required data-keep="no"><input class="input" id="nm-email" type="email" placeholder="Email" style="flex:1.4;min-width:150px" required data-keep="no"><input class="input" id="nm-role" placeholder="Role" style="flex:1;min-width:90px" data-keep="no"><button class="btn primary">Invite</button></form>`
-    : `<form class="pad row" id="add-member"><input class="input" id="nm-name" placeholder="Name" style="flex:1;min-width:120px" required data-keep="no"><input class="input" id="nm-role" placeholder="Role" style="flex:1;min-width:100px" data-keep="no"><button class="btn">Add</button></form>`;
-  return `<div class="page">
-    <h1>Workspace</h1>
-    <div class="grid-2">
-      <div class="stack">
-        <div class="panel pad stack">
-          <div class="row spread"><div><h2>Require approval</h2><span class="muted" style="font-size:14.5px">Posts must be approved before they can be scheduled or sent.</span></div>
-            <button class="switch${S.settings.requireApproval ? ' on' : ''}" data-act="toggle-approval" aria-label="Require approval" aria-pressed="${S.settings.requireApproval}"${admin ? '' : ' disabled'}></button></div>
-          <div class="field"><span class="label">Default approvers</span><div class="check-list">${S.members.map(m => `<label class="chk${S.settings.defaultApprovers.includes(m.id) ? ' on' : ''}"><input type="checkbox" data-act="def-approver" value="${m.id}"${S.settings.defaultApprovers.includes(m.id) ? ' checked' : ''}${admin ? '' : ' disabled'}>${h(m.name)}</label>`).join('')}</div></div>
-        </div>
-        <div class="panel"><div class="pad"><h2>Team</h2>${server ? '<span class="muted" style="font-size:14.5px">Each teammate signs in with their own email and password.</span>' : ''}</div><div class="table-wrap"><table><tbody>${team}</tbody></table></div>
-          ${addForm}${invite}</div>
-      </div>
-      <div class="stack">
-        <div class="panel"><div class="pad"><h2>Campaigns</h2><span class="muted" style="font-size:14.5px">Shown as bands across the calendar.</span></div>
-          <div class="table-wrap"><table><tbody>${S.campaigns.map(c => `<tr><td><span class="banner" style="--h:${c.h};display:inline-block;margin:0">${h(c.name)}</span></td><td class="mono muted">${c.start} → ${c.end}</td><td style="text-align:right"><button class="btn icon ghost" data-act="del-camp" data-id="${c.id}" aria-label="Delete ${h(c.name)}">${ICON.trash}</button></td></tr>`).join('')}</tbody></table></div>
-          <form class="pad row" id="add-camp"><input class="input" id="cp-name" placeholder="Campaign name" style="flex:2;min-width:140px" required data-keep="no"><input class="input" type="date" id="cp-start" required style="flex:1;min-width:130px" data-keep="no"><input class="input" type="date" id="cp-end" required style="flex:1;min-width:130px" data-keep="no"><button class="btn">Add</button></form></div>
-        <div class="panel"><div class="pad"><h2>Labels</h2></div>
-          <div class="pad row" style="padding-top:0">${S.labels.map(l => `<span class="row" style="gap:2px">${tagHTML(l.id)}<button class="btn icon ghost" style="padding:3px" data-act="del-label" data-id="${l.id}" aria-label="Delete ${h(l.name)}">${ICON.x.replace('<svg', '<svg width="12" height="12"')}</button></span>`).join('')}</div>
-          <form class="pad row" id="add-label" style="padding-top:0"><input class="input" id="lb-name" placeholder="New label" style="flex:1" required data-keep="no"><button class="btn">Add</button></form></div>
-        ${server ? `<div class="panel"><div class="pad"><h2>Your password</h2></div><form class="pad row" id="change-pw" style="padding-top:0"><input class="input" type="password" id="pw-cur" placeholder="Current password" autocomplete="current-password" style="flex:1;min-width:140px" required data-keep="no"><input class="input" type="password" id="pw-new" placeholder="New password (10+ characters)" autocomplete="new-password" minlength="10" style="flex:1;min-width:160px" required data-keep="no"><button class="btn">Change</button></form></div>`
-          : `<div class="panel pad row spread"><div><h2>Sample data</h2><span class="muted" style="font-size:14.5px">Everything is saved in this browser.</span></div><button class="btn danger" data-act="reset">Reset to sample data</button></div>`}
-      </div>
-    </div></div>`;
+    ? `<form class="pad row" id="add-member"><input class="input" id="nm-name" placeholder="Name" aria-label="Name" style="flex:1;min-width:120px" required data-keep="no"><input class="input" id="nm-email" type="email" placeholder="Email" aria-label="Email" style="flex:1.4;min-width:170px" required data-keep="no"><input class="input" id="nm-role" placeholder="Role" aria-label="Role" style="flex:1;min-width:100px" data-keep="no"><button class="btn primary">Invite</button></form>`
+    : `<form class="pad row" id="add-member"><input class="input" id="nm-name" placeholder="Name" aria-label="Name" style="flex:1;min-width:120px" required data-keep="no"><input class="input" id="nm-role" placeholder="Role" aria-label="Role" style="flex:1;min-width:100px" data-keep="no"><button class="btn">Add teammate</button></form>`;
+  return `<div class="panel"><div class="pad"><h2>Team</h2><div class="set-desc">${server ? 'Each teammate signs in with their own email and password.' : 'Sample teammates for trying approvals and chat.'}</div></div>
+    <div class="table-wrap"><table><tbody>${team}</tbody></table></div>${addForm}${invite}</div>`;
 }
 
 /* ============================================================
@@ -1509,6 +1619,10 @@ const ServerBackend = {
   async invite(fields) { return api('POST', '/api/members', fields); },
   async reinvite(id) { return api('POST', `/api/members/${id}/invite`); },
   async removeMember(id) { await api('DELETE', `/api/members/${id}`); S.members = S.members.filter(m => m.id !== id); },
+  async updateProfile(fields) {
+    const m = (await api('PUT', `/api/members/${S.me}`, fields)).member;
+    S.members = S.members.map(x => x.id === m.id ? m : x); UI.meUser = m;
+  },
 };
 
 function decideLocal(p, v) {
@@ -1593,6 +1707,7 @@ const LocalBackend = {
   async invite({ name, role }) { const hues = ['#0e7490', '#b45309', '#be185d', '#4d7c0f']; S.members.push({ id: uid(), name, role: role || 'Member', color: hues[S.members.length % hues.length] }); save(); return {}; },
   async reinvite() { return {}; },
   async removeMember(id) { S.members = S.members.filter(m => m.id !== id); save(); },
+  async updateProfile({ name, role, color }) { Object.assign(member(S.me), { name, role: role || 'Member', color }); save(); },
 };
 let B = LocalBackend;
 
@@ -1783,6 +1898,11 @@ document.addEventListener('click', async e => {
       else { el.dataset.confirm = '1'; el.textContent = 'Click again to remove'; }
       break;
     case 'copy-invite': { const t = $('#invite-url').textContent; try { await navigator.clipboard.writeText(t); toast('Invite link copied'); } catch (err) { getSelection().selectAllChildren($('#invite-url')); toast('Copy was blocked. The link is selected, so press Ctrl+C or ⌘C.'); } break; }
+    // settings
+    case 'settings-tab': UI.settingsTab = v; UI.profileColor = null; if (location.hash) history.replaceState(null, '', location.pathname + location.search); render(); $('#main').scrollTop = 0; break;
+    case 'open-profile': UI.view = 'settings'; UI.settingsTab = 'profile'; render(); break;
+    case 'theme': setTheme(v); render(); toast(v === 'system' ? 'Theme follows your device' : `${v === 'dark' ? 'Dark' : 'Light'} theme on`); break;
+    case 'pick-color': UI.profileColor = v; render(); break;
     // team chat
     case 'chat-open': UI.chatId = id; render(); $('#chat-input')?.focus(); break;
     case 'chat-dm': run(async () => { const c = await B.chatOpenDm(id); UI.chatId = c.id; }); break;
@@ -1896,6 +2016,10 @@ document.addEventListener('submit', async e => {
   }
   if (f.id === 'add-camp') { const s = $('#cp-start').value, en = $('#cp-end').value; if (!s || !en) return; run(() => B.workspace({ campaigns: [...S.campaigns, { id: uid(), name: $('#cp-name').value.trim(), start: s <= en ? s : en, end: s <= en ? en : s, h: Math.floor(Math.random() * 360) }] }), 'Campaign added'); }
   if (f.id === 'add-label') run(() => B.workspace({ labels: [...S.labels, { id: uid(), name: $('#lb-name').value.trim(), h: Math.floor(Math.random() * 360) }] }), 'Label added');
+  if (f.id === 'profile-form') {
+    const name = $('#pf-name').value.trim(); if (!name) { toast('Enter a name.'); return; }
+    run(async () => { await B.updateProfile({ name, role: $('#pf-role').value.trim(), color: UI.profileColor || member(S.me).color }); UI.profileColor = null; }, 'Profile saved');
+  }
   if (f.id === 'change-pw') run(() => api('POST', '/api/me/password', { current: $('#pw-cur').value, next: $('#pw-new').value }), 'Password changed');
 });
 
