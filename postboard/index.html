@@ -112,7 +112,7 @@ svg { flex: none; }
 .empty { padding: 28px 16px; text-align: center; color: var(--muted); }
 
 /* ---------- platform + labels ---------- */
-.pf { width: 18px; height: 18px; border-radius: 50%; display: inline-grid; place-items: center; color: #fff; font: 700 8.5px/1 var(--font-body); letter-spacing: -.02em; box-shadow: 0 0 0 1.5px var(--surface); flex: none; }
+.pf { width: 18px; height: 18px; border-radius: 50%; display: inline-grid; place-items: center; color: #fff; font: 700 8.5px/1 var(--font-body); letter-spacing: -.02em; box-shadow: 0 0 0 1.5px var(--surface), inset 0 0 0 1px rgba(255,255,255,.22); flex: none; }
 .pf.lg { width: 26px; height: 26px; font-size: 11px; }
 .pfs { display: inline-flex; }
 .pfs .pf + .pf { margin-left: -4px; }
@@ -365,6 +365,83 @@ tr.click:hover td { background: var(--surface-2); }
 
 .toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 13px; z-index: 80; box-shadow: var(--shadow); max-width: calc(100% - 32px); }
 
+
+/* ---------- team chat + social inbox ---------- */
+.split { display: grid; grid-template-columns: 250px minmax(0, 1fr); height: calc(100dvh - 190px); min-height: 460px; overflow: hidden; }
+.split-side { border-right: 1px solid var(--line); overflow-y: auto; padding: 12px 8px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.split-side .eyebrow { padding: 10px 8px 4px; }
+.split-main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.split-head { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.split-head .grow { flex: 1; min-width: 0; }
+.split-head small { color: var(--muted); font-size: 12px; font-weight: 400; }
+.ch-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 0; background: none; border-radius: 7px; text-align: left; width: 100%; color: var(--fg); min-width: 0; }
+.ch-item:hover { background: var(--surface-2); }
+.ch-item.on { background: var(--accent-soft); color: var(--accent); }
+.ch-item.unread .nm { font-weight: 600; }
+.ch-item .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ch-item .hash { color: var(--faint); font-family: var(--font-mono); width: 14px; text-align: center; }
+.badge-n { font: 500 11px/1 var(--font-mono); background: var(--accent); color: var(--accent-fg); border-radius: 20px; padding: 3px 6px; }
+.presence { width: 8px; height: 8px; border-radius: 50%; background: var(--line-strong); flex: none; }
+.presence.on { background: var(--ok); }
+.av-wrap { position: relative; display: inline-flex; flex: none; }
+.av-wrap .presence { position: absolute; right: -2px; bottom: -2px; box-shadow: 0 0 0 2px var(--surface); }
+.log-scroll { flex: 1; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 2px; min-height: 0; }
+.day-sep { display: flex; align-items: center; gap: 10px; margin: 12px 0 6px; color: var(--faint); font: 500 10.5px/1 var(--font-mono); letter-spacing: .07em; text-transform: uppercase; }
+.day-sep::before, .day-sep::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.msg { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 0 10px; padding: 3px 0; }
+.msg .avatar { width: 32px; height: 32px; font-size: 12px; grid-row: span 2; }
+.msg .meta { font-size: 12px; color: var(--muted); }
+.msg .meta b { color: var(--fg); font-weight: 600; margin-right: 6px; font-size: 13.5px; }
+.msg .text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; min-width: 0; }
+.msg.cont .text { grid-column: 2; }
+.composer-bar { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line); align-items: flex-end; }
+.composer-bar textarea { flex: 1; resize: none; min-height: 40px; max-height: 160px; }
+.bubble-row { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; margin: 4px 0; }
+.bubble-row.out { align-items: flex-end; }
+.bubble { max-width: min(78%, 520px); padding: 8px 12px; border-radius: 14px; background: var(--surface-2); white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; }
+.bubble-row.out .bubble { background: var(--accent); color: var(--accent-fg); }
+.bubble-row.out.failed .bubble { background: var(--bad-soft); color: var(--bad); }
+.bubble-meta { font-size: 11.5px; color: var(--faint); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.thread { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 2px 10px; padding: 9px 8px; border: 0; background: none; border-radius: 8px; text-align: left; width: 100%; color: var(--fg); }
+.thread:hover { background: var(--surface-2); }
+.thread.on { background: var(--accent-soft); }
+.cav { grid-row: span 2; width: 34px; height: 34px; border-radius: 50%; background: var(--surface-2); display: grid; place-items: center; font: 600 12px/1 var(--font-body); color: var(--muted); position: relative; flex: none; }
+.thread.on .cav { background: var(--surface); }
+.cav .pf { position: absolute; right: -3px; bottom: -3px; width: 15px; height: 15px; font-size: 7px; }
+.thread .who { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.thread.unread .who { font-weight: 700; }
+.thread .snip { color: var(--muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; grid-column: 2 / 4; min-width: 0; }
+.thread time { font: 11px/1.4 var(--font-mono); color: var(--faint); white-space: nowrap; }
+.thread.unread time::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); margin-right: 5px; }
+.chips { display: flex; gap: 4px; flex-wrap: wrap; padding: 0 4px 8px; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 20px; padding: 3px 8px; font-size: 12px; display: inline-flex; gap: 5px; align-items: center; }
+.chip.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.chip .pf { width: 14px; height: 14px; font-size: 6.5px; box-shadow: none; }
+.side-form { display: flex; gap: 4px; padding: 6px 4px; }
+.side-form input { flex: 1; min-width: 0; padding: 5px 8px; font-size: 12.5px; }
+details.tester { border-top: 1px solid var(--line); padding: 10px 16px; font-size: 13px; }
+details.tester summary { cursor: pointer; color: var(--muted); }
+details.tester form { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 8px; margin-top: 8px; }
+details.tester form .full { grid-column: 1 / -1; }
+.mode { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 500; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+.mode.live { background: var(--ok-soft); color: var(--ok); }
+.mode.sandbox { background: var(--accent-soft); color: var(--accent); }
+.mode.off, .mode.unsupported { background: var(--surface-2); color: var(--muted); }
+.mode.failed { background: var(--bad-soft); color: var(--bad); }
+.invite-box { display: flex; gap: 8px; align-items: center; background: var(--accent-soft); border-radius: 8px; padding: 10px 12px; font-size: 12.5px; }
+.invite-box code { flex: 1; min-width: 0; overflow-wrap: anywhere; font-family: var(--font-mono); font-size: 11.5px; }
+.me-chip { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.me-chip .nm { flex: 1; min-width: 0; line-height: 1.2; overflow: hidden; }
+.me-chip .nm b { display: block; font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.me-chip .nm span { font-size: 11.5px; color: var(--muted); }
+
+/* ---------- sign in ---------- */
+.auth { min-height: 100%; display: grid; place-items: center; padding-block: 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); grid-column: 1 / -1; }
+.auth-card { width: min(400px, 100%); display: flex; flex-direction: column; gap: 14px; padding: 28px; }
+.auth-card h1 { font-size: 24px; }
+.auth-card .err { color: var(--bad); font-size: 13px; }
+.auth-card .err:empty { display: none; }
+
 @media (max-width: 1000px) {
   .grid-2, .prof-layout { grid-template-columns: minmax(0, 1fr); }
 }
@@ -387,6 +464,11 @@ tr.click:hover td { background: var(--surface-2); }
   .two { grid-template-columns: minmax(0, 1fr); }
   .item { grid-template-columns: minmax(0, 1fr); }
   .bar-row { grid-template-columns: 76px minmax(0, 1fr) 54px; }
+  .split { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); height: calc(100dvh - 250px); min-height: 420px; }
+  .split-side { flex-direction: row; overflow-x: auto; overflow-y: hidden; border-right: 0; border-bottom: 1px solid var(--line); padding: 8px; align-items: center; }
+  .split-side .eyebrow, .split-side .side-form, .split-side .chips { display: none; }
+  .split-side .ch-item, .split-side .thread { width: auto; flex: none; max-width: 220px; }
+  .split-side .thread .snip { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
@@ -517,6 +599,7 @@ function countFor(text, ch) {
 const STORE_KEY = 'postboard.v1';
 let S;
 function save() {
+  if (MODE !== 'local') return;
   try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); }
   catch (e) { toast('Browser storage is full. Remove some uploaded media to keep changes.'); }
 }
@@ -580,12 +663,44 @@ function seed() {
     { id: uid(), at: Date.now() - 4 * 36e5, to: 'u1', text: 'Jordan Ellis asked you to approve “Cupping 101 with Jordan”', postId: posts[11].id, read: false },
     { id: uid(), at: Date.now() - 30 * 36e5, to: 'all', text: '“Founder note: pricing” was published to LinkedIn and X', postId: posts[7].id, read: true },
   ];
-  return { v: 1, me: 'u1', members, accounts, labels, campaigns, posts, notifications, settings: { requireApproval: true, defaultApprovers: ['u2'] } };
+  return { v: 1, me: 'u1', members, accounts, labels, campaigns, posts, notifications, settings: { requireApproval: true, defaultApprovers: ['u2'] }, ...seedTalk() };
+}
+// Sample team chat and customer DMs for the standalone file. Replies here are never sent anywhere.
+function seedTalk() {
+  const ago = m => Date.now() - m * 6e4;
+  const msg = (channelId, userId, body, m) => ({ id: uid(), channelId, userId, body, at: ago(m) });
+  const chatMsgs = {
+    'c-general': [msg('c-general', 'u2', 'Morning! Open house prep meeting moved to 2pm.', 300), msg('c-general', 'u3', 'Got it. I’ll bring the shot list for the roaster tour.', 290), msg('c-general', 'u4', 'Holiday blend label art is in the shared folder. Two options, both **draft**.', 180)],
+    'c-review': [msg('c-review', 'u3', 'Cupping 101 is in review. @Derrick the captions are the only open item.', 200), msg('c-review', 'u2', 'I approved it. The hook in the first 2 seconds works.', 190)],
+    'dm-u1-u2': [msg('dm-u1-u2', 'u2', 'Can you look at the Night Shift Nurses post today? Alma sent her OK.', 60)],
+  };
+  const th = (id, platform, name, handle, msgs, extra = {}) => {
+    const list = msgs.map(([direction, body, m, sentBy]) => ({ id: uid(), threadId: id, direction, body, at: ago(m), sentBy: sentBy || null, delivery: direction === 'out' ? 'sandbox' : 'received' }));
+    const inbound = list.filter(x => x.direction === 'in');
+    return [{ id, platform, contact: { name, handle }, lastAt: list.at(-1).at, lastInboundAt: inbound.at(-1)?.at || null, lastText: list.at(-1).body, unread: extra.status === 'done' ? 0 : inbound.length, status: 'open', assignedTo: null, sandbox: true, ...extra }, list];
+  };
+  const threads = [
+    th('t1', 'instagram', 'Tess Alvarez', '@pdx.latte.lover', [['in', 'Do you have oat milk for the maple cardamom latte?? 😍', 42]]),
+    th('t2', 'x', 'Ricardo M.', '@ricardo_m', [['in', 'Is the open house kid friendly? Want to bring my 6yo', 95]], { assignedTo: 'u3' }),
+    th('t3', 'facebook', 'Dana Whitfield', 'Dana Whitfield', [['in', 'Hi! Do you cater office meetings? About 25 people, next Thursday.', 1800], ['in', 'Just following up on this 🙂', 1560]]),
+    th('t4', 'discord', 'sam_roasts', '@sam_roasts', [['in', 'hey, can I bring green beans to the AMA for a quick look?', 15]]),
+    th('t5', 'instagram', 'Kenji Mori', '@kenji.brews', [['in', 'Loved the latte reel. What grinder is that?', 600], ['out', 'Thanks Kenji! It’s a Mahlkönig EK43. We dial it in every morning.', 590, 'u3'], ['in', 'Amazing, thank you!', 585]], { status: 'done' }),
+  ];
+  return {
+    chat: { channels: [{ id: 'c-general', kind: 'channel', name: 'general' }, { id: 'c-review', kind: 'channel', name: 'content-review' }, { id: 'dm-u1-u2', kind: 'dm', members: ['u1', 'u2'] }] },
+    chatMsgs, chatReads: {},
+    inbox: { threads: threads.map(t => t[0]) },
+    dmMsgs: Object.fromEntries(threads.map(t => [t[0].id, t[1]])),
+    dmPlatforms: ['instagram', 'facebook', 'x', 'discord'],
+  };
 }
 
-S = load() || seed();
-const UI = { view: 'calendar', layout: 'calendar', calMode: '2w', cursor: Date.now(), filters: { ch: '', label: '', status: '' }, draft: null, pvTab: null, sideTab: 'preview', profPf: 'instagram', profTab: 'grid', storyIdx: 0, range: 30, anPf: '' };
+
+let MODE = 'local'; // 'server' when this page is served by the Postboard server and signed in
+const UI = { view: 'calendar', layout: 'calendar', calMode: '2w', cursor: Date.now(), filters: { ch: '', label: '', status: '' }, draft: null, pvTab: null, sideTab: 'preview', profPf: 'instagram', profTab: 'grid', storyIdx: 0, range: 30, anPf: '',
+  chatId: null, threadId: null, msgPlatform: '', msgStatus: 'open', online: [], meUser: null, lastInvite: null };
 try { const v = sessionStorage.getItem('postboard.view'); if (v) UI.view = v; } catch (e) {}
+if (/^#[a-z]+$/.test(location.hash)) UI.view = location.hash.slice(1);
 
 /* ---------- derived ---------- */
 const member = id => S.members.find(m => m.id === id) || { name: id === 'system' ? 'Postboard' : 'Someone', color: '#888' };
@@ -599,7 +714,7 @@ const tagHTML = id => { const l = label(id); return l ? `<span class="tag" style
 const pill = st => `<span class="pill ${st}">${STATUS[st] || st}</span>`;
 function needsMyApproval(p) { return p.status === 'in_review' && p.approval.approvers.includes(S.me) && !p.approval.decisions[S.me]; }
 function approvalComplete(p) { return !p.approval.required || (p.approval.approvers.length > 0 && p.approval.approvers.every(a => p.approval.decisions[a] === 'approved')); }
-function unreadCount() { return S.notifications.filter(n => !n.read && (n.to === S.me || n.to === 'all')).length; }
+function unreadCount() { return S.notifications.filter(n => !n.read && (MODE === 'server' || n.to === S.me || n.to === 'all')).length; }
 function notify(to, text, postId) { S.notifications.unshift({ id: uid(), at: Date.now(), to, text, postId, read: false }); }
 function addLog(p, text, who = S.me) { p.log.push({ at: Date.now(), who, text }); }
 
@@ -626,26 +741,188 @@ function postTotals(p) {
 /* ============================================================
    RENDER: shell
    ============================================================ */
+const isAdmin = () => MODE === 'local' || !!UI.meUser?.isAdmin;
+const DM_LIMIT = { instagram: 1000, facebook: 2000, x: 10000, discord: 2000 };
+const DM_REASON = {
+  linkedin: 'LinkedIn only opens its messaging API to approved partners.',
+  tiktok: 'TikTok’s messaging API is limited to approved business partners.',
+  threads: 'Threads has no public messaging API.',
+  youtube: 'YouTube doesn’t have direct messages.',
+};
+const OAUTH_ENV = { x: 'X_CLIENT_ID and X_CLIENT_SECRET', meta: 'META_APP_ID and META_APP_SECRET', linkedin: 'LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET', tiktok: 'TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET', threads: 'THREADS_APP_ID and THREADS_APP_SECRET', youtube: 'GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET' };
+const OAUTH_NAME = { x: 'X', meta: 'Facebook', linkedin: 'LinkedIn', tiktok: 'TikTok', threads: 'Threads', youtube: 'Google' };
+const isOnline = id => MODE === 'local' ? id === S.me : UI.online.includes(id);
+
+/* ---------- chat + DM helpers shared by both modes ---------- */
+const chWith = c => c.kind === 'dm' ? (c.with || (c.members || []).find(x => x !== S.me) || S.me) : null;
+const chVisible = c => c.kind === 'channel' || MODE === 'server' || (c.members || []).includes(S.me);
+function chUnread(c) {
+  if (MODE === 'server') return c.unread || 0;
+  const read = S.chatReads[`${S.me}:${c.id}`] || 0;
+  return (S.chatMsgs[c.id] || []).filter(m => m.at > read && m.userId !== S.me).length;
+}
+const chatUnreadTotal = () => S.chat.channels.filter(chVisible).reduce((n, c) => n + chUnread(c), 0);
+const dmUnreadTotal = () => S.inbox.threads.filter(t => t.status === 'open' && t.unread).length;
+function upsertChannel(c) { const i = S.chat.channels.findIndex(x => x.id === c.id); if (i >= 0) S.chat.channels[i] = { ...S.chat.channels[i], ...c }; else S.chat.channels.push(c); return S.chat.channels.find(x => x.id === c.id); }
+function addChatMsg(m) {
+  const list = (S.chatMsgs[m.channelId] ||= []);
+  if (!list.some(x => x.id === m.id)) list.push(m);
+  const c = S.chat.channels.find(x => x.id === m.channelId); if (c) c.lastAt = m.at;
+}
+function upsertThread(t) { const i = S.inbox.threads.findIndex(x => x.id === t.id); if (i >= 0) S.inbox.threads[i] = t; else S.inbox.threads.unshift(t); return t; }
+function addDmMsg(m) {
+  const list = (S.dmMsgs[m.threadId] ||= []);
+  const i = list.findIndex(x => x.id === m.id); if (i >= 0) list[i] = m; else list.push(m);
+  if (MODE === 'local') { const t = S.inbox.threads.find(x => x.id === m.threadId); if (t) { t.lastAt = m.at; t.lastText = m.body; if (m.direction === 'in') { t.lastInboundAt = m.at; t.unread++; t.status = 'open'; } } }
+}
+function replyWindow(t) {
+  if (MODE === 'server' && t.replyWindow) return t.replyWindow;
+  if (!['instagram', 'facebook'].includes(t.platform) || !t.lastInboundAt) return { open: true };
+  const since = Date.now() - t.lastInboundAt;
+  if (since <= 864e5) return { open: true, closesAt: t.lastInboundAt + 864e5 };
+  if (since <= 7 * 864e5) return { open: true, humanAgent: true, closesAt: t.lastInboundAt + 7 * 864e5 };
+  return { open: false };
+}
+
 function render() {
   try { sessionStorage.setItem('postboard.view', UI.view); } catch (e) {}
+  if (!VIEWS[UI.view]) UI.view = 'calendar';
   const pend = S.posts.filter(needsMyApproval).length; const un = unreadCount();
   const nav = (id, icon, text, count) => `<button class="nav${UI.view === id ? ' on' : ''}" data-act="view" data-v="${id}">${ICON[icon]}<span>${text}</span>${count ? `<span class="count">${count}</span>` : ''}</button>`;
+  const me = member(S.me);
+  const who = MODE === 'server'
+    ? `<div class="me-chip"><span class="av-wrap">${avatar(S.me, 28)}<i class="presence on"></i></span><span class="nm"><b>${h(me.name)}</b><span>${h(me.role)}</span></span><button class="btn ghost" data-act="logout" style="padding:5px 8px;font-size:12px">Log out</button></div>`
+    : `<span class="eyebrow">Acting as</span><select id="me-select" aria-label="Acting as">${S.members.map(m => `<option value="${m.id}"${m.id === S.me ? ' selected' : ''}>${h(m.name)} · ${h(m.role)}</option>`).join('')}</select>`;
+  // keep typed text, focus and scroll positions across a re-render
+  const keep = {};
+  document.querySelectorAll('#main textarea[id], #main input[id]:not([type=checkbox]):not([type=file])').forEach(el => { if (el.dataset.keep !== 'no') keep[el.id] = { v: el.value, k: el.dataset.keep }; });
+  const act = document.activeElement;
+  const focus = act?.id && act.closest?.('#main') ? { id: act.id, a: act.selectionStart, b: act.selectionEnd } : null;
+  const mainTop = $('#main')?.scrollTop || 0;
+  const log = $('#log-scroll'); const logState = log ? { top: log.scrollTop, bottom: log.scrollHeight - log.scrollTop - log.clientHeight < 40, key: log.dataset.key } : null;
   $('#app').innerHTML = `
     <aside class="side">
       <div class="brand"><span class="wordmark"><i></i>Postboard</span></div>
       <div class="nav-group"><span class="eyebrow">Plan</span>
-        ${nav('calendar', 'cal', 'Calendar')}${nav('approvals', 'check', 'Approvals', pend)}${nav('inbox', 'inbox', 'Inbox', un)}
+        ${nav('calendar', 'cal', 'Calendar')}${nav('approvals', 'check', 'Approvals', pend)}${nav('inbox', 'inbox', 'Notifications', un)}
       </div>
+      <div class="nav-group"><span class="eyebrow">Talk</span>${nav('chat', 'chat', 'Team chat', chatUnreadTotal())}${nav('messages', 'send', 'Messages', dmUnreadTotal())}</div>
       <div class="nav-group"><span class="eyebrow">Preview</span>${nav('profile', 'grid', 'Grid & profile')}</div>
       <div class="nav-group"><span class="eyebrow">Measure</span>${nav('analytics', 'chart', 'Analytics')}</div>
       <div class="nav-group"><span class="eyebrow">Settings</span>${nav('channels', 'plug', 'Channels')}${nav('workspace', 'cog', 'Workspace')}</div>
-      <div class="whoami"><span class="eyebrow">Acting as</span>
-        <select id="me-select" aria-label="Acting as">${S.members.map(m => `<option value="${m.id}"${m.id === S.me ? ' selected' : ''}>${h(m.name)} · ${h(m.role)}</option>`).join('')}</select>
-      </div>
+      <div class="whoami">${who}</div>
     </aside>
     <main class="main" id="main">${VIEWS[UI.view]()}</main>`;
+  for (const [id, o] of Object.entries(keep)) { const el = document.getElementById(id); if (el && el.dataset.keep === o.k && el.value !== o.v) el.value = o.v; }
+  if (focus) { const el = document.getElementById(focus.id); if (el) { el.focus({ preventScroll: true }); try { el.setSelectionRange(focus.a, focus.b); } catch (e) {} } }
+  $('#main').scrollTop = mainTop;
+  const log2 = $('#log-scroll');
+  if (log2) log2.scrollTop = logState && logState.key === log2.dataset.key && !logState.bottom ? logState.top : log2.scrollHeight;
 }
-const VIEWS = { calendar: viewCalendar, approvals: viewApprovals, inbox: viewInbox, analytics: viewAnalytics, profile: viewProfile, channels: viewChannels, workspace: viewWorkspace };
+let renderQueued = false;
+function scheduleRender() { if (renderQueued) return; renderQueued = true; requestAnimationFrame(() => { renderQueued = false; render(); }); }
+const VIEWS = { calendar: viewCalendar, approvals: viewApprovals, inbox: viewInbox, chat: viewChat, messages: viewMessages, analytics: viewAnalytics, profile: viewProfile, channels: viewChannels, workspace: viewWorkspace };
+
+/* ---------- team chat ---------- */
+function viewChat() {
+  const channels = S.chat.channels.filter(c => c.kind === 'channel').sort((a, b) => a.name.localeCompare(b.name));
+  if (!UI.chatId || !S.chat.channels.some(c => c.id === UI.chatId && chVisible(c))) UI.chatId = (channels.find(c => c.name === 'general') || channels[0])?.id || null;
+  const cur = S.chat.channels.find(c => c.id === UI.chatId);
+  if (cur && MODE === 'server' && !S.chatMsgs[cur.id]) B.chatMessages(cur.id).then(scheduleRender).catch(err => toast(err.message));
+  if (cur && chUnread(cur)) markChatRead(cur);
+  const dmFor = id => S.chat.channels.find(c => c.kind === 'dm' && chVisible(c) && chWith(c) === id);
+  const item = (c, label, lead = '') => { const n = c.id === UI.chatId ? 0 : chUnread(c); return `<button class="ch-item${c.id === UI.chatId ? ' on' : ''}${n ? ' unread' : ''}" data-act="chat-open" data-id="${c.id}">${lead || '<span class="hash">#</span>'}<span class="nm">${h(label)}</span>${n ? `<span class="badge-n">${n}</span>` : ''}</button>`; };
+  const people = S.members.filter(m => m.id !== S.me && m.active !== false);
+  const side = `<aside class="split-side">
+      <span class="eyebrow">Channels</span>
+      ${channels.map(c => item(c, c.name)).join('')}
+      <form class="side-form" id="new-channel"><input class="input" id="nc-name" placeholder="new-channel" aria-label="New channel name" data-keep="no"><button class="btn icon" aria-label="Add channel">${ICON.plus}</button></form>
+      <span class="eyebrow">Direct messages</span>
+      ${people.map(m => { const c = dmFor(m.id); const pres = `<span class="av-wrap">${avatar(m.id, 22)}<i class="presence${isOnline(m.id) ? ' on' : ''}"></i></span>`; return c ? item(c, m.name, pres) : `<button class="ch-item" data-act="chat-dm" data-id="${m.id}">${pres}<span class="nm">${h(m.name)}</span></button>`; }).join('') || '<span class="muted" style="padding:6px 8px;font-size:12.5px">Invite teammates from Workspace to message them.</span>'}
+    </aside>`;
+  let main;
+  if (!cur) main = '<section class="split-main"><div class="empty">No channels yet.</div></section>';
+  else {
+    const msgs = S.chatMsgs[cur.id];
+    const other = cur.kind === 'dm' ? member(chWith(cur)) : null;
+    let last = null, lastDay = null;
+    const rows = (msgs || []).map(m => {
+      const day = dayKey(m.at); let out = '';
+      if (day !== lastDay) { out += `<div class="day-sep">${day === dayKey(Date.now()) ? 'Today' : fmtDate(m.at)}</div>`; last = null; }
+      const cont = last && last.userId === m.userId && m.at - last.at < 5 * 6e4;
+      const text = richHTML(m.body).replace(/(^|\s)@(\w+)/g, '$1<span class="mention">@$2</span>');
+      out += cont ? `<div class="msg cont"><div class="text">${text}</div></div>`
+        : `<div class="msg">${avatar(m.userId)}<div class="meta"><b>${h(member(m.userId).name)}</b>${fmtTime(m.at)}</div><div class="text">${text}</div></div>`;
+      last = m; lastDay = day; return out;
+    }).join('');
+    const title = cur.kind === 'dm' ? `${h(other.name)} <small>${h(other.role || '')} · ${isOnline(other.id) ? 'online' : 'away'}</small>` : `# ${h(cur.name)} <small>${S.members.length} members</small>`;
+    main = `<section class="split-main">
+      <div class="split-head"><div class="grow"><h2>${title}</h2></div>${MODE === 'local' ? `<span class="note">${ICON.info}Sample chat. Run the server so teammates can chat for real.</span>` : ''}</div>
+      <div class="log-scroll" id="log-scroll" data-key="${cur.id}">${msgs ? rows || `<div class="empty">This is the start of ${cur.kind === 'dm' ? 'your conversation with ' + h(other.name) : '#' + h(cur.name)}.</div>` : '<div class="empty">Loading…</div>'}</div>
+      <form class="composer-bar" id="chat-form"><textarea class="input" id="chat-input" rows="1" placeholder="Message ${cur.kind === 'dm' ? h(other.name.split(' ')[0]) : '#' + h(cur.name)}" aria-label="Message" data-keep="${cur.id}"></textarea><button class="btn primary">${ICON.send}Send</button></form>
+    </section>`;
+  }
+  return `<div class="page"><div class="row spread"><h1>Team chat</h1><span class="muted" style="font-size:12.5px">Enter sends · Shift+Enter adds a line · @name notifies a teammate</span></div><div class="panel split">${side}${main}</div></div>`;
+}
+let readTimer = null;
+function markChatRead(c) {
+  if (MODE === 'local') { S.chatReads[`${S.me}:${c.id}`] = Date.now(); save(); return; }
+  c.unread = 0; clearTimeout(readTimer); readTimer = setTimeout(() => B.chatRead(c.id).catch(() => {}), 200);
+}
+
+/* ---------- social inbox ---------- */
+function viewMessages() {
+  const dmPf = S.dmPlatforms;
+  const all = S.inbox.threads.slice().sort((a, b) => b.lastAt - a.lastAt);
+  const list = all.filter(t => (!UI.msgPlatform || t.platform === UI.msgPlatform) && (UI.msgStatus === 'all' || t.status === UI.msgStatus));
+  if (!list.some(t => t.id === UI.threadId)) UI.threadId = list[0]?.id || null;
+  const t = all.find(x => x.id === UI.threadId);
+  if (t && MODE === 'server' && !S.dmMsgs[t.id]) B.dmMessages(t.id).then(scheduleRender).catch(err => toast(err.message));
+  if (t && t.unread) { t.unread = 0; B.dmRead(t.id).catch(() => {}); }
+  const cname = x => x.contact.name || x.contact.handle || 'Customer';
+  const side = `<aside class="split-side">
+    <div class="chips"><button class="chip${!UI.msgPlatform ? ' on' : ''}" data-act="msg-pf" data-v="">All</button>${dmPf.map(p => `<button class="chip${UI.msgPlatform === p ? ' on' : ''}" data-act="msg-pf" data-v="${p}">${pfBadge(p)}${PLATFORMS[p].name}</button>`).join('')}</div>
+    ${list.map(x => `<button class="thread${x.id === UI.threadId ? ' on' : ''}${x.unread ? ' unread' : ''}" data-act="thread-open" data-id="${x.id}">
+      <span class="cav">${h(initials(cname(x)))}${pfBadge(x.platform)}</span><span class="who">${h(cname(x))}</span><time>${ago(x.lastAt)}</time>
+      <span class="snip">${x.assignedTo ? `→ ${h(member(x.assignedTo).name.split(' ')[0])} · ` : ''}${h(x.lastText)}</span></button>`).join('') || `<div class="empty">No ${UI.msgStatus === 'open' ? 'open ' : UI.msgStatus === 'done' ? 'finished ' : ''}conversations${UI.msgPlatform ? ' on ' + PLATFORMS[UI.msgPlatform].name : ''}.</div>`}
+  </aside>`;
+  let main = '<section class="split-main"><div class="empty">Pick a conversation.</div></section>';
+  if (t) {
+    const msgs = S.dmMsgs[t.id];
+    const acct = S.accounts[t.platform];
+    const live = MODE === 'server' && !t.sandbox && acct.dmMode === 'live';
+    const win = replyWindow(t);
+    const limit = DM_LIMIT[t.platform];
+    const rows = (msgs || []).map(m => `<div class="bubble-row ${m.direction}${m.delivery === 'failed' ? ' failed' : ''}"><div class="bubble">${h(m.body)}</div>
+      <div class="bubble-meta">${m.direction === 'out' ? `${m.sentBy ? h(member(m.sentBy).name) : h(acct.name || 'Your account')} · ` : ''}${fmtWhen(m.at)}${m.delivery === 'sandbox' ? ' · <span class="mode sandbox">Sandbox, not sent</span>' : ''}${m.delivery === 'failed' ? ` · <span class="mode failed" title="${h(m.error || '')}">Not delivered: ${h((m.error || '').slice(0, 90))}</span>` : ''}</div></div>`).join('');
+    const windowNote = !win.open ? `<div class="warn bad">${ICON.warn}<span>${PLATFORMS[t.platform].name} only allows replies within 7 days of the customer’s last message.</span></div>`
+      : win.humanAgent ? `<div class="warn">${ICON.warn}<span>It’s been more than 24 hours, so this reply goes out with Meta’s Human Agent tag, which your Meta app needs permission for. Replies close ${fmtWhen(win.closesAt)}.</span></div>` : '';
+    main = `<section class="split-main">
+      <div class="split-head"><span class="cav" style="grid-row:auto">${h(initials(cname(t)))}${pfBadge(t.platform)}</span>
+        <div class="grow"><h2>${h(cname(t))}</h2><small>${t.contact.handle && t.contact.handle !== cname(t) ? h(t.contact.handle) + ' · ' : ''}${PLATFORMS[t.platform].name}</small></div>
+        <span class="mode ${live ? 'live' : 'sandbox'}">${live ? 'Live' : 'Sandbox'}</span>
+        <select class="input" id="dm-assign" style="width:auto" aria-label="Assign to" data-keep="no"><option value="">Unassigned</option>${S.members.map(m => `<option value="${m.id}"${t.assignedTo === m.id ? ' selected' : ''}>${h(m.name)}</option>`).join('')}</select>
+        <button class="btn" data-act="thread-status" data-v="${t.status === 'done' ? 'open' : 'done'}">${t.status === 'done' ? 'Reopen' : `${ICON.check}Mark done`}</button></div>
+      <div class="log-scroll" id="log-scroll" data-key="${t.id}">${msgs ? rows : '<div class="empty">Loading…</div>'}</div>
+      ${windowNote ? `<div style="padding:0 16px 4px">${windowNote}</div>` : ''}
+      <form class="composer-bar" id="dm-form"><textarea class="input" id="dm-input" rows="2" maxlength="${limit}" placeholder="Reply on ${PLATFORMS[t.platform].name} as ${h(acct.name || acct.handle || 'your account')}" aria-label="Reply" data-keep="${t.id}"${win.open ? '' : ' disabled'}></textarea><button class="btn primary"${win.open ? '' : ' disabled'}>${ICON.send}Reply</button></form>
+    </section>`;
+  }
+  const testPf = dmPf.filter(p => MODE === 'local' || S.accounts[p].dmMode !== 'live');
+  const anyLive = MODE === 'server' && dmPf.some(p => S.accounts[p].dmMode === 'live');
+  return `<div class="page">
+    <div class="row spread"><h1>Messages</h1>
+      <div class="row"><div class="seg">${[['open', 'Open'], ['done', 'Done'], ['all', 'All']].map(([k, v]) => `<button class="${UI.msgStatus === k ? 'on' : ''}" data-act="msg-status" data-v="${k}">${v}</button>`).join('')}</div>
+      ${anyLive ? `<button class="btn" data-act="dm-sync">Check for new messages</button>` : ''}</div></div>
+    <div class="note">${ICON.info}Answer DMs from ${dmPf.map(p => PLATFORMS[p].name).join(', ')} here. LinkedIn, TikTok, Threads and YouTube don’t let apps like this read or send DMs, so those stay in each app.</div>
+    <div class="panel"><div class="split">${side}${main}</div>
+      ${isAdmin() && testPf.length ? `<details class="tester"><summary>Add a test message from a customer</summary><form id="dm-sim">
+        <select class="input" id="sim-pf" aria-label="Network" data-keep="no">${testPf.map(p => `<option value="${p}">${PLATFORMS[p].name}</option>`).join('')}</select>
+        <input class="input" id="sim-name" placeholder="Customer name" value="Test customer" aria-label="Customer name" data-keep="no">
+        <input class="input full" id="sim-text" placeholder="Message" value="Hi! Are you open on Sunday?" aria-label="Message" data-keep="no">
+        <div class="full row spread"><span class="muted" style="font-size:12px">Only for channels that aren’t live. Replies to test messages are recorded, not sent.</span><button class="btn">Add message</button></div></form></details>` : ''}
+    </div></div>`;
+}
 
 /* ---------- calendar ---------- */
 function visiblePosts() {
@@ -774,9 +1051,9 @@ function viewApprovals() {
 function viewInbox() {
   const list = S.notifications.filter(n => n.to === S.me || n.to === 'all');
   return `<div class="page">
-    <div class="row spread"><h1>Inbox</h1><button class="btn" data-act="read-all"${list.some(n => !n.read) ? '' : ' disabled'}>Mark all read</button></div>
+    <div class="row spread"><h1>Notifications</h1><button class="btn" data-act="read-all"${list.some(n => !n.read) ? '' : ' disabled'}>Mark all read</button></div>
     <div class="panel">${list.map(n => `<div class="notif${n.read ? '' : ' unread'}" data-act="notif" data-id="${n.id}">
-      ${post(n.postId) ? pfBadges(post(n.postId).channels.slice(0, 3)) : ''}<div>${h(n.text)}</div><span class="when">${ago(n.at)}</span></div>`).join('') || '<div class="empty">You are all caught up. Mentions, approval requests and send results show up here.</div>'}
+      ${post(n.postId) ? pfBadges(post(n.postId).channels.slice(0, 3)) : n.link?.startsWith('chat:') ? ICON.chat.replace('<svg', '<svg width="16" height="16"') : n.link?.startsWith('dm:') ? ICON.send.replace('<svg', '<svg width="16" height="16"') : ''}<div>${h(n.text)}</div><span class="when">${ago(n.at)}</span></div>`).join('') || '<div class="empty">You are all caught up. Mentions, approval requests and send results show up here.</div>'}
     </div></div>`;
 }
 
@@ -907,42 +1184,78 @@ function storyFrame(p, pf, idx, total) {
 
 /* ---------- channels ---------- */
 function viewChannels() {
-  return `<div class="page">
-    <div class="row spread"><h1>Channels</h1></div>
-    <div class="note">${ICON.info}Discord posts go out for real through a channel webhook. The other networks need an approved developer app and a server to hold OAuth tokens, so sends to them are simulated and logged until those are wired into the publisher.</div>
-    <div class="ch-grid">${PF_IDS.map(c => { const P = PLATFORMS[c], a = S.accounts[c]; return `<div class="panel ch-card">
-      <div class="top">${pfBadge(c, true)}<div class="grow"><b>${P.name}</b><div class="muted" style="font-size:12px">${a.connected ? (c === 'discord' && a.webhook ? 'Webhook connected · live sends' : c === 'discord' ? 'Connected · add a webhook to send' : 'Connected · simulated sends') : 'Not connected'}</div></div>
-        <button class="switch${a.connected ? ' on' : ''}" data-act="toggle-conn" data-v="${c}" aria-label="Connect ${P.name}" aria-pressed="${a.connected}"></button></div>
-      <div class="two"><div class="field"><label for="h-${c}">${c === 'discord' ? 'Server' : 'Handle'}</label><input class="input" id="h-${c}" data-acct="${c}" data-k="handle" value="${h(a.handle)}"></div>
-        <div class="field"><label for="n-${c}">Display name</label><input class="input" id="n-${c}" data-acct="${c}" data-k="name" value="${h(a.name)}"></div></div>
-      ${c === 'discord' ? `<div class="field"><label for="wh">Webhook URL</label><input class="input" id="wh" data-acct="discord" data-k="webhook" placeholder="https://discord.com/api/webhooks/…" value="${h(a.webhook)}"></div>
-        <div class="row"><button class="btn" data-act="test-discord"${a.webhook ? '' : ' disabled'}>${ICON.send}Send test message</button><span class="muted" style="font-size:12px">Server Settings → Integrations → Webhooks</span></div>` : ''}
+  const server = MODE === 'server'; const admin = isAdmin(); const ro = admin ? '' : ' disabled';
+  const card = c => {
+    const P = PLATFORMS[c], a = S.accounts[c];
+    const m = server ? a.mode : a.connected ? (c === 'discord' && a.webhook ? 'live' : 'sandbox') : 'off';
+    const modeTxt = { live: 'Live', sandbox: 'Sandbox', off: 'Off' }[m];
+    const sub = server
+      ? { live: 'Posts go out for real', sandbox: 'Sends are recorded, not posted', off: 'Not connected' }[m]
+      : { live: 'Webhook connected · live sends', sandbox: c === 'discord' ? 'Add a webhook to send' : 'Simulated sends', off: 'Not connected' }[m];
+    const dmLine = S.dmPlatforms.includes(c)
+      ? `<span class="row" style="gap:6px;font-size:12.5px">${ICON.send.replace('<svg', '<svg width="13" height="13"')}DMs answered in Messages${server ? ` · <span class="mode ${a.dmMode}">${{ live: 'Live', sandbox: 'Sandbox', off: 'Off' }[a.dmMode] || a.dmMode}</span>` : ''}</span>`
+      : `<span class="muted" style="font-size:12.5px">DMs: ${h(DM_REASON[c])}</span>`;
+    let connect = '';
+    if (server && a.oauth) {
+      const o = a.oauth;
+      if (m === 'live') connect = `<button class="btn" data-act="disconnect" data-v="${c}"${ro}>Disconnect</button>${o.shared ? `<span class="muted" style="font-size:12px">Shared login with ${o.provider === 'meta' ? 'Facebook and Instagram' : ''}</span>` : ''}`;
+      else if (o.configured && admin) connect = `<a class="btn primary" href="/api/oauth/${o.provider}/start">${ICON.plug}Connect with ${OAUTH_NAME[o.provider]}</a>${o.shared ? '<span class="muted" style="font-size:12px">Connects Facebook and Instagram together</span>' : ''}`;
+      else connect = `<span class="muted" style="font-size:12px">To connect for real, add ${OAUTH_ENV[o.provider]} to the server’s environment.</span>`;
+    }
+    const discord = c !== 'discord' ? '' : server ? `
+      <div class="field"><label for="wh">Webhook URL for posts ${a.hasWebhook ? '<span class="mode live">Saved</span>' : ''}</label><input class="input" id="wh" type="password" autocomplete="off" data-acct="discord" data-k="webhook" placeholder="${a.hasWebhook ? 'Saved. Paste a new URL to replace it.' : 'https://discord.com/api/webhooks/…'}" data-keep="no"${ro}></div>
+      <div class="field"><label for="bt">Bot token for DMs ${a.hasBotToken ? '<span class="mode live">Saved</span>' : ''}</label><input class="input" id="bt" type="password" autocomplete="off" data-acct="discord" data-k="botToken" placeholder="${a.hasBotToken ? 'Saved. Paste a new token to replace it.' : 'From the Discord Developer Portal → Bot'}" data-keep="no"${ro}></div>
+      <div class="row"><button class="btn" data-act="test-discord"${a.hasWebhook && admin ? '' : ' disabled'}>${ICON.send}Send test message</button>${a.hasWebhook || a.hasBotToken ? `<button class="btn ghost" data-act="disconnect" data-v="discord"${ro}>Remove</button>` : ''}</div>`
+      : `<div class="field"><label for="wh">Webhook URL</label><input class="input" id="wh" data-acct="discord" data-k="webhook" placeholder="https://discord.com/api/webhooks/…" value="${h(a.webhook)}"></div>
+      <div class="row"><button class="btn" data-act="test-discord"${a.webhook ? '' : ' disabled'}>${ICON.send}Send test message</button><span class="muted" style="font-size:12px">Server Settings → Integrations → Webhooks</span></div>`;
+    return `<div class="panel ch-card">
+      <div class="top">${pfBadge(c, true)}<div class="grow"><b>${P.name}</b> <span class="mode ${m}">${modeTxt}</span><div class="muted" style="font-size:12px">${sub}</div></div>
+        ${m !== 'live' || !server ? `<button class="switch${(server ? m !== 'off' : a.connected) ? ' on' : ''}" data-act="toggle-conn" data-v="${c}" aria-label="${server ? 'Sandbox' : 'Connect'} ${P.name}" aria-pressed="${m !== 'off'}"${ro}></button>` : ''}</div>
+      <div class="two"><div class="field"><label for="h-${c}">${c === 'discord' ? 'Server' : 'Handle'}</label><input class="input" id="h-${c}" data-acct="${c}" data-k="handle" value="${h(a.handle)}"${ro}></div>
+        <div class="field"><label for="n-${c}">Display name</label><input class="input" id="n-${c}" data-acct="${c}" data-k="name" value="${h(a.name)}"${ro}></div></div>
+      ${connect ? `<div class="row">${connect}</div>` : ''}${discord}
+      ${dmLine}
       <div class="caps"><span class="fmt">${P.limit.toLocaleString()} chars</span>${P.formats.map(f => `<span class="fmt">${FORMATS[f]}</span>`).join('')}<span class="fmt">${P.markdown ? 'Markdown' : 'Unicode bold/italic'}</span></div>
-    </div>`; }).join('')}</div></div>`;
+    </div>`;
+  };
+  const note = server
+    ? `Live channels post and reply for real. Sandbox channels record what would have been sent, which is useful for trying the workflow. ${admin ? '' : 'Only admins can change channels.'}`
+    : 'Discord posts go out for real through a channel webhook. The other networks need the Postboard server, which holds each network’s login. Until then their sends are simulated.';
+  return `<div class="page"><div class="row spread"><h1>Channels</h1></div><div class="note">${ICON.info}${note}</div><div class="ch-grid">${PF_IDS.map(card).join('')}</div></div>`;
 }
 
 /* ---------- workspace ---------- */
 function viewWorkspace() {
+  const server = MODE === 'server'; const admin = isAdmin();
+  const team = S.members.map(m => `<tr><td style="width:36px"><span class="av-wrap">${avatar(m.id, 28)}${server ? `<i class="presence${isOnline(m.id) ? ' on' : ''}"></i>` : ''}</span></td>
+    <td><b style="font-weight:500">${h(m.name)}</b>${m.id === S.me ? ' <span class="muted">(you)</span>' : ''}${server ? `<div class="muted" style="font-size:12px">${h(m.email || '')}</div>` : ''}</td>
+    <td class="muted">${h(m.role)}${m.isAdmin ? ' · Admin' : ''}</td>
+    <td style="text-align:right;white-space:nowrap">${server && m.active === false ? `<span class="pill in_review">Invite pending</span> ${admin ? `<button class="btn ghost" data-act="reinvite" data-id="${m.id}">New link</button>` : ''}` : ''}${server && admin && m.id !== S.me ? `<button class="btn icon ghost" data-act="rm-member" data-id="${m.id}" aria-label="Remove ${h(m.name)}">${ICON.trash}</button>` : ''}</td></tr>`).join('');
+  const invite = UI.lastInvite ? `<div class="pad" style="padding-top:0"><div class="invite-box"><span>Send ${h(UI.lastInvite.name)} this link. It works once and expires in 7 days.</span></div><div class="invite-box" style="margin-top:6px"><code id="invite-url">${h(UI.lastInvite.url)}</code><button class="btn" data-act="copy-invite">${ICON.copy}Copy</button></div></div>` : '';
+  const addForm = !admin ? '' : server
+    ? `<form class="pad row" id="add-member"><input class="input" id="nm-name" placeholder="Name" style="flex:1;min-width:110px" required data-keep="no"><input class="input" id="nm-email" type="email" placeholder="Email" style="flex:1.4;min-width:150px" required data-keep="no"><input class="input" id="nm-role" placeholder="Role" style="flex:1;min-width:90px" data-keep="no"><button class="btn primary">Invite</button></form>`
+    : `<form class="pad row" id="add-member"><input class="input" id="nm-name" placeholder="Name" style="flex:1;min-width:120px" required data-keep="no"><input class="input" id="nm-role" placeholder="Role" style="flex:1;min-width:100px" data-keep="no"><button class="btn">Add</button></form>`;
   return `<div class="page">
     <h1>Workspace</h1>
     <div class="grid-2">
       <div class="stack">
         <div class="panel pad stack">
           <div class="row spread"><div><h2>Require approval</h2><span class="muted" style="font-size:13px">Posts must be approved before they can be scheduled or sent.</span></div>
-            <button class="switch${S.settings.requireApproval ? ' on' : ''}" data-act="toggle-approval" aria-label="Require approval" aria-pressed="${S.settings.requireApproval}"></button></div>
-          <div class="field"><span class="label">Default approvers</span><div class="check-list">${S.members.map(m => `<label class="chk${S.settings.defaultApprovers.includes(m.id) ? ' on' : ''}"><input type="checkbox" data-act="def-approver" value="${m.id}"${S.settings.defaultApprovers.includes(m.id) ? ' checked' : ''}>${h(m.name)}</label>`).join('')}</div></div>
+            <button class="switch${S.settings.requireApproval ? ' on' : ''}" data-act="toggle-approval" aria-label="Require approval" aria-pressed="${S.settings.requireApproval}"${admin ? '' : ' disabled'}></button></div>
+          <div class="field"><span class="label">Default approvers</span><div class="check-list">${S.members.map(m => `<label class="chk${S.settings.defaultApprovers.includes(m.id) ? ' on' : ''}"><input type="checkbox" data-act="def-approver" value="${m.id}"${S.settings.defaultApprovers.includes(m.id) ? ' checked' : ''}${admin ? '' : ' disabled'}>${h(m.name)}</label>`).join('')}</div></div>
         </div>
-        <div class="panel"><div class="pad"><h2>Team</h2></div><table><tbody>${S.members.map(m => `<tr><td style="width:36px">${avatar(m.id, 28)}</td><td><b style="font-weight:500">${h(m.name)}</b></td><td class="muted">${h(m.role)}</td></tr>`).join('')}</tbody></table>
-          <form class="pad row" id="add-member"><input class="input" id="nm-name" placeholder="Name" style="flex:1;min-width:120px" required><input class="input" id="nm-role" placeholder="Role" style="flex:1;min-width:100px"><button class="btn">Add</button></form></div>
+        <div class="panel"><div class="pad"><h2>Team</h2>${server ? '<span class="muted" style="font-size:13px">Each teammate signs in with their own email and password.</span>' : ''}</div><div class="table-wrap"><table><tbody>${team}</tbody></table></div>
+          ${addForm}${invite}</div>
       </div>
       <div class="stack">
         <div class="panel"><div class="pad"><h2>Campaigns</h2><span class="muted" style="font-size:13px">Shown as bands across the calendar.</span></div>
-          <table><tbody>${S.campaigns.map(c => `<tr><td><span class="banner" style="--h:${c.h};display:inline-block;margin:0">${h(c.name)}</span></td><td class="mono muted">${c.start} → ${c.end}</td><td style="text-align:right"><button class="btn icon ghost" data-act="del-camp" data-id="${c.id}" aria-label="Delete ${h(c.name)}">${ICON.trash}</button></td></tr>`).join('')}</tbody></table>
-          <form class="pad row" id="add-camp"><input class="input" id="cp-name" placeholder="Campaign name" style="flex:2;min-width:140px" required><input class="input" type="date" id="cp-start" required style="flex:1;min-width:130px"><input class="input" type="date" id="cp-end" required style="flex:1;min-width:130px"><button class="btn">Add</button></form></div>
+          <div class="table-wrap"><table><tbody>${S.campaigns.map(c => `<tr><td><span class="banner" style="--h:${c.h};display:inline-block;margin:0">${h(c.name)}</span></td><td class="mono muted">${c.start} → ${c.end}</td><td style="text-align:right"><button class="btn icon ghost" data-act="del-camp" data-id="${c.id}" aria-label="Delete ${h(c.name)}">${ICON.trash}</button></td></tr>`).join('')}</tbody></table></div>
+          <form class="pad row" id="add-camp"><input class="input" id="cp-name" placeholder="Campaign name" style="flex:2;min-width:140px" required data-keep="no"><input class="input" type="date" id="cp-start" required style="flex:1;min-width:130px" data-keep="no"><input class="input" type="date" id="cp-end" required style="flex:1;min-width:130px" data-keep="no"><button class="btn">Add</button></form></div>
         <div class="panel"><div class="pad"><h2>Labels</h2></div>
           <div class="pad row" style="padding-top:0">${S.labels.map(l => `<span class="row" style="gap:2px">${tagHTML(l.id)}<button class="btn icon ghost" style="padding:3px" data-act="del-label" data-id="${l.id}" aria-label="Delete ${h(l.name)}">${ICON.x.replace('<svg', '<svg width="12" height="12"')}</button></span>`).join('')}</div>
-          <form class="pad row" id="add-label" style="padding-top:0"><input class="input" id="lb-name" placeholder="New label" style="flex:1" required><button class="btn">Add</button></form></div>
-        <div class="panel pad row spread"><div><h2>Sample data</h2><span class="muted" style="font-size:13px">Everything is saved in this browser.</span></div><button class="btn danger" data-act="reset">Reset to sample data</button></div>
+          <form class="pad row" id="add-label" style="padding-top:0"><input class="input" id="lb-name" placeholder="New label" style="flex:1" required data-keep="no"><button class="btn">Add</button></form></div>
+        ${server ? `<div class="panel"><div class="pad"><h2>Your password</h2></div><form class="pad row" id="change-pw" style="padding-top:0"><input class="input" type="password" id="pw-cur" placeholder="Current password" autocomplete="current-password" style="flex:1;min-width:140px" required data-keep="no"><input class="input" type="password" id="pw-new" placeholder="New password (10+ characters)" autocomplete="new-password" minlength="10" style="flex:1;min-width:160px" required data-keep="no"><button class="btn">Change</button></form></div>`
+          : `<div class="panel pad row spread"><div><h2>Sample data</h2><span class="muted" style="font-size:13px">Everything is saved in this browser.</span></div><button class="btn danger" data-act="reset">Reset to sample data</button></div>`}
       </div>
     </div></div>`;
 }
@@ -1027,6 +1340,7 @@ function sidePane() {
     <button class="${UI.sideTab === 'activity' ? 'on' : ''}" data-act="side-tab" data-v="activity">Activity</button></div>`;
   let body = '';
   if (UI.sideTab === 'preview') body = `<div class="stack" id="pv-pane">${previewPane()}</div>`;
+  else if (UI.sideTab === 'team' && d.isNew) body = '<div class="empty">Save the post first. Then teammates can like it, comment and sign up to repost.</div>';
   else if (UI.sideTab === 'team') {
     const liked = d.likes.includes(S.me), rep = d.reposts.includes(S.me);
     body = `<div class="stack">
@@ -1100,7 +1414,7 @@ function renderModal() {
         <div class="field"><label for="c-tagged">Tag accounts</label><input class="input" id="c-tagged" placeholder="@partner, @photographer" value="${h(d.tagged)}"${dis}></div>
         <div class="panel pad stack" style="gap:8px">
           <div class="row spread"><div><h2>Approval</h2><span class="muted" style="font-size:12.5px">${d.approval.required ? (approved ? 'Approved. Ready to schedule.' : 'Approvers must sign off before this can be scheduled.') : 'Not required for this post.'}</span></div>
-            <button type="button" class="switch${d.approval.required ? ' on' : ''}" data-act="req-approval" aria-label="Require approval" aria-pressed="${d.approval.required}"${dis}></button></div>
+            <button type="button" class="switch${d.approval.required ? ' on' : ''}" data-act="req-approval" aria-label="Require approval" aria-pressed="${d.approval.required}"${dis || (S.settings.requireApproval ? ' disabled title="Required by the workspace"' : '')}></button></div>
           ${d.approval.required ? S.members.map(m => { const dec = d.approval.decisions[m.id]; const on = d.approval.approvers.includes(m.id); return `<label class="approver"><input type="checkbox" data-act="approver" value="${m.id}"${on ? ' checked' : ''}${dis || dec ? ' disabled' : ''}>${avatar(m.id)}<span class="grow">${h(m.name)} <span class="muted">· ${h(m.role)}</span></span>${on ? (dec === 'approved' ? '<span class="pill published">Approved</span>' : dec === 'changes' ? '<span class="pill changes">Changes</span>' : '<span class="pill">Waiting</span>') : ''}</label>`; }).join('') : ''}
         </div>
         <div id="warns">${warnsHTML(d)}</div>
@@ -1125,16 +1439,6 @@ function refreshModalKeepFocus() {
   if (sel && sel[2]) { const t = $('#c-body'); t.focus(); t.setSelectionRange(sel[0], sel[1]); }
 }
 
-function commitDraft(status) {
-  const d = UI.draft; const wasNew = d.isNew; delete d.isNew;
-  if (status) d.status = status;
-  const i = S.posts.findIndex(p => p.id === d.id);
-  if (i >= 0) S.posts[i] = d; else S.posts.push(d);
-  if (wasNew) d.log.unshift({ at: d.createdAt, who: d.author, text: 'created the post' });
-  save();
-  return d;
-}
-
 /* ---------- formatting in the editor ---------- */
 function wrapSelection(mark) {
   const ta = $('#c-body'); if (!ta || ta.disabled) return;
@@ -1153,25 +1457,153 @@ function insertAtCursor(txt) {
 }
 
 /* ============================================================
-   PUBLISHING
+   BACKENDS
+   LocalBackend keeps everything in this browser (the standalone file).
+   ServerBackend talks to the Postboard server, which owns the rules.
    ============================================================ */
+function upsertPost(p) { const i = S.posts.findIndex(x => x.id === p.id); if (i >= 0) S.posts[i] = p; else S.posts.push(p); return p; }
+const editable = d => ({ title: d.title, body: d.body, channels: d.channels, format: d.format, scheduledAt: d.scheduledAt, labels: d.labels, tagged: d.tagged, media: d.media, approval: { required: d.approval.required, approvers: d.approval.approvers } });
+
+async function api(method, path, body) {
+  const r = await fetch(path, { method, credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Postboard': '1' }, body: body === undefined ? undefined : JSON.stringify(body) });
+  let data = {}; try { data = await r.json(); } catch (e) {}
+  if (r.status === 401 && MODE === 'server') { showAuth('login'); throw new Error('Your session ended. Sign in again.'); }
+  if (!r.ok) throw new Error(data.error || `The server returned ${r.status}.`);
+  return data;
+}
+
+const ServerBackend = {
+  async save(d) { const r = d.isNew ? await api('POST', '/api/posts', editable(d)) : await api('PUT', `/api/posts/${d.id}`, editable(d)); return upsertPost(r.post); },
+  async patch(id, fields) { return upsertPost((await api('PUT', `/api/posts/${id}`, fields)).post); },
+  async requestApproval(id) { return upsertPost((await api('POST', `/api/posts/${id}/request-approval`)).post); },
+  async decide(id, v) { return upsertPost((await api('POST', `/api/posts/${id}/decision`, { decision: v })).post); },
+  async schedule(id) { return upsertPost((await api('POST', `/api/posts/${id}/schedule`)).post); },
+  async publishNow(id) { return upsertPost((await api('POST', `/api/posts/${id}/publish`)).post); },
+  async react(id, kind) { return upsertPost((await api('POST', `/api/posts/${id}/react`, { kind })).post); },
+  async comment(id, text) { return upsertPost((await api('POST', `/api/posts/${id}/comments`, { text })).post); },
+  async remove(id) { await api('DELETE', `/api/posts/${id}`); S.posts = S.posts.filter(p => p.id !== id); },
+  async readNotifs(ids) { await api('POST', '/api/notifications/read', { ids }); S.notifications.forEach(n => { if (ids === 'all' || ids.includes(n.id)) n.read = true; }); },
+  async workspace(fields) { Object.assign(S, await api('PUT', '/api/workspace', fields)); },
+  async account(pf, fields) { S.accounts[pf] = (await api('PUT', `/api/accounts/${pf}`, fields)).account; },
+  async disconnect(pf) { await api('POST', `/api/accounts/${pf}/disconnect`); S.accounts = (await api('GET', '/api/accounts')).accounts; },
+  async testDiscord() { await api('POST', '/api/accounts/discord/test'); },
+  async chatMessages(ch) { S.chatMsgs[ch] = (await api('GET', `/api/chat/channels/${ch}/messages`)).messages; },
+  async chatSend(ch, body) { addChatMsg((await api('POST', `/api/chat/channels/${ch}/messages`, { body })).message); },
+  async chatRead(ch) { await api('POST', `/api/chat/channels/${ch}/read`); },
+  async chatOpenDm(userId) { return upsertChannel((await api('POST', '/api/chat/channels', { with: userId })).channel); },
+  async chatCreate(name) { return upsertChannel((await api('POST', '/api/chat/channels', { name })).channel); },
+  async dmMessages(t) { S.dmMsgs[t] = (await api('GET', `/api/inbox/threads/${t}/messages`)).messages; },
+  async dmReply(t, body) { const m = (await api('POST', `/api/inbox/threads/${t}/reply`, { body })).message; addDmMsg(m); return m; },
+  async dmRead(t) { await api('POST', `/api/inbox/threads/${t}/read`); },
+  async dmUpdate(t, fields) { upsertThread((await api('PUT', `/api/inbox/threads/${t}`, fields)).thread); },
+  async dmSync() { return (await api('POST', '/api/inbox/sync')).result; },
+  async dmSimulate(fields) { const r = await api('POST', '/api/inbox/simulate', fields); if (r.thread) { upsertThread(r.thread); delete S.dmMsgs[r.thread.id]; return r.thread; } },
+  async invite(fields) { return api('POST', '/api/members', fields); },
+  async reinvite(id) { return api('POST', `/api/members/${id}/invite`); },
+  async removeMember(id) { await api('DELETE', `/api/members/${id}`); S.members = S.members.filter(m => m.id !== id); },
+};
+
+function decideLocal(p, v) {
+  p.approval.decisions[S.me] = v;
+  addLog(p, v === 'approved' ? 'approved' : 'requested changes');
+  if (v === 'changes') { p.status = 'changes'; notify(p.author, `${member(S.me).name} requested changes on “${p.title}”`, p.id); }
+  else if (approvalComplete(p)) {
+    p.status = p.scheduledAt && p.scheduledAt > Date.now() ? 'scheduled' : 'approved';
+    notify(p.author, `“${p.title}” is approved${p.status === 'scheduled' ? ' and scheduled for ' + fmtWhen(p.scheduledAt) : ''}`, p.id);
+  }
+}
+const mentionsIn = text => S.members.filter(m => m.id !== S.me && new RegExp('@' + m.name.split(' ')[0] + '\\b', 'i').test(text));
+
+const LocalBackend = {
+  async save(d) {
+    const p = clone(d); const isNew = p.isNew; delete p.isNew;
+    if (isNew) p.log.unshift({ at: p.createdAt, who: p.author, text: 'created the post' }); else p.log.push({ at: Date.now(), who: S.me, text: 'saved changes' });
+    upsertPost(p); save(); return p;
+  },
+  async patch(id, fields) { const p = post(id); Object.assign(p, fields); if ('scheduledAt' in fields) addLog(p, `moved to ${fmtWhen(p.scheduledAt)}`); save(); return p; },
+  async requestApproval(id) {
+    const p = post(id); p.approval.decisions = {}; p.status = 'in_review'; addLog(p, 'requested approval');
+    p.approval.approvers.forEach(a => { if (a !== S.me) notify(a, `${member(S.me).name} asked you to approve “${p.title || 'Untitled'}”`, p.id); });
+    save(); return p;
+  },
+  async decide(id, v) { const p = post(id); if (!p.approval.approvers.includes(S.me)) throw new Error('You aren’t an approver on this post.'); decideLocal(p, v); save(); return p; },
+  async schedule(id) { const p = post(id); if (!p.scheduledAt || p.scheduledAt <= Date.now()) throw new Error('Pick a time in the future, or use Send now.'); p.status = 'scheduled'; addLog(p, `scheduled for ${fmtWhen(p.scheduledAt)}`); save(); return p; },
+  async publishNow(id) { const p = post(id); addLog(p, 'sent the post now'); if (!p.scheduledAt || p.scheduledAt > Date.now()) p.scheduledAt = Date.now(); save(); publishLocal(p); return p; },
+  async react(id, kind) {
+    const p = post(id); const key = kind === 'like' ? 'likes' : 'reposts'; const i = p[key].indexOf(S.me);
+    if (i >= 0) p[key].splice(i, 1); else { p[key].push(S.me); addLog(p, kind === 'like' ? 'liked the post' : 'signed up to repost'); if (p.author !== S.me) notify(p.author, `${member(S.me).name} ${kind === 'like' ? 'liked' : 'will repost'} “${p.title}”`, p.id); }
+    save(); return p;
+  },
+  async comment(id, text) {
+    const p = post(id); p.comments.push({ id: uid(), who: S.me, text, at: Date.now() }); addLog(p, 'commented');
+    const mentioned = mentionsIn(text); mentioned.forEach(m => notify(m.id, `${member(S.me).name} mentioned you on “${p.title}”`, p.id));
+    if (p.author !== S.me && !mentioned.find(m => m.id === p.author)) notify(p.author, `${member(S.me).name} commented on “${p.title}”`, p.id);
+    save(); return p;
+  },
+  async remove(id) { S.posts = S.posts.filter(p => p.id !== id); save(); },
+  async readNotifs(ids) { S.notifications.forEach(n => { if (ids === 'all' ? (n.to === S.me || n.to === 'all') : ids.includes(n.id)) n.read = true; }); save(); },
+  async workspace(fields) { Object.assign(S, fields); if (fields.labels) { const keep = new Set(fields.labels.map(l => l.id)); S.posts.forEach(p => { p.labels = p.labels.filter(x => keep.has(x)); }); } save(); },
+  async account(pf, fields) { if ('enabled' in fields) { S.accounts[pf].connected = fields.enabled; delete fields.enabled; } Object.assign(S.accounts[pf], fields); save(); },
+  async disconnect(pf) { S.accounts[pf].connected = false; save(); },
+  async testDiscord() { const r = await PUBLISHERS.discord({ title: '', body: '**Postboard test**: this channel is connected.', media: [] }, S.accounts.discord); if (!r.ok || !r.live) throw new Error(r.msg); },
+  async chatMessages() {},
+  async chatSend(ch, body) {
+    addChatMsg({ id: uid(), channelId: ch, userId: S.me, body, at: Date.now() }); S.chatReads[`${S.me}:${ch}`] = Date.now();
+    const c = S.chat.channels.find(x => x.id === ch);
+    if (c.kind === 'channel') mentionsIn(body).forEach(m => S.notifications.unshift({ id: uid(), at: Date.now(), to: m.id, text: `${member(S.me).name} mentioned you in #${c.name}`, postId: null, link: `chat:${c.id}`, read: false }));
+    save();
+  },
+  async chatRead(ch) { S.chatReads[`${S.me}:${ch}`] = Date.now(); save(); },
+  async chatOpenDm(userId) {
+    let c = S.chat.channels.find(x => x.kind === 'dm' && x.members.includes(S.me) && x.members.includes(userId));
+    if (!c) { c = { id: 'dm-' + uid(), kind: 'dm', members: [S.me, userId] }; S.chat.channels.push(c); save(); }
+    return c;
+  },
+  async chatCreate(name) {
+    const n = name.toLowerCase().trim().replace(/^#/, '').replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
+    if (!n) throw new Error('Give the channel a name using letters, numbers or dashes.');
+    if (S.chat.channels.some(c => c.kind === 'channel' && c.name === n)) throw new Error(`#${n} already exists.`);
+    const c = { id: 'c-' + uid(), kind: 'channel', name: n }; S.chat.channels.push(c); save(); return c;
+  },
+  async dmMessages() {},
+  async dmReply(t, body) {
+    const th = S.inbox.threads.find(x => x.id === t); if (!replyWindow(th).open) throw new Error(`${PLATFORMS[th.platform].name} only allows replies within 7 days of the customer’s last message.`);
+    const m = { id: uid(), threadId: t, direction: 'out', body, sentBy: S.me, at: Date.now(), delivery: 'sandbox' }; addDmMsg(m); save(); return m;
+  },
+  async dmRead(t) { const th = S.inbox.threads.find(x => x.id === t); if (th) th.unread = 0; save(); },
+  async dmUpdate(t, fields) {
+    const th = S.inbox.threads.find(x => x.id === t); Object.assign(th, fields);
+    if (fields.assignedTo && fields.assignedTo !== S.me) S.notifications.unshift({ id: uid(), at: Date.now(), to: fields.assignedTo, text: `${member(S.me).name} assigned you a ${PLATFORMS[th.platform].name} conversation with ${th.contact.name}`, postId: null, link: `dm:${th.id}`, read: false });
+    save();
+  },
+  async dmSync() { return {}; },
+  async dmSimulate({ platform, name, text }) {
+    let th = S.inbox.threads.find(x => x.platform === platform && x.contact.name === name);
+    if (!th) { th = { id: 't-' + uid(), platform, contact: { name, handle: '' }, lastAt: Date.now(), lastInboundAt: null, lastText: '', unread: 0, status: 'open', assignedTo: null, sandbox: true }; S.inbox.threads.unshift(th); }
+    addDmMsg({ id: uid(), threadId: th.id, direction: 'in', body: text, at: Date.now(), delivery: 'received' }); save(); return th;
+  },
+  async invite({ name, role }) { const hues = ['#0e7490', '#b45309', '#be185d', '#4d7c0f']; S.members.push({ id: uid(), name, role: role || 'Member', color: hues[S.members.length % hues.length] }); save(); return {}; },
+  async reinvite() { return {}; },
+  async removeMember(id) { S.members = S.members.filter(m => m.id !== id); save(); },
+};
+let B = LocalBackend;
+
+/* ---------- local-only publishing (the standalone file has no server) ---------- */
 function dataURLtoBlob(u) { const [head, b64] = u.split(','); const mime = head.match(/:(.*?);/)[1]; const bin = atob(b64); const a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new Blob([a], { type: mime }); }
 const PUBLISHERS = {
   async discord(p, acct) {
     if (!acct.webhook) return { ok: true, live: false, msg: 'Simulated send. Add a webhook URL in Channels to post for real.' };
-    const payload = { content: (p.title ? '' : '') + p.body.slice(0, 2000), username: acct.name || 'Postboard' };
+    const payload = { content: p.body.slice(0, 2000), username: acct.name || 'Postboard' };
     const m = p.media.find(x => x.src && x.src.startsWith('data:'));
     let init;
     if (m) { const fd = new FormData(); fd.append('payload_json', JSON.stringify(payload)); fd.append('files[0]', dataURLtoBlob(m.src), m.kind === 'video' ? 'clip.mp4' : 'image.jpg'); init = { method: 'POST', body: fd }; }
     else init = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) };
     try { const r = await fetch(acct.webhook + (acct.webhook.includes('?') ? '&' : '?') + 'wait=true', init); return r.ok ? { ok: true, live: true } : { ok: false, msg: `Discord returned ${r.status}. Check the webhook URL.` }; }
-    catch (e) { return { ok: false, msg: 'The request was blocked. This page may be running somewhere that blocks outside requests; open the file locally or host it to send.' }; }
+    catch (e) { return { ok: false, msg: 'The request was blocked. This page may be running somewhere that blocks outside requests; open the file locally or run the server to send.' }; }
   },
-  // Each of these is where a real API call goes: Instagram Graph API, LinkedIn Posts API, X API v2, TikTok Content Posting API,
-  // Facebook Pages API, Threads API, YouTube Data API. They need OAuth tokens held by a server, so here they simulate.
   async default(p, acct, ch) { await new Promise(r => setTimeout(r, 350)); return { ok: true, live: false, msg: `Simulated send to ${PLATFORMS[ch].name}.` }; },
 };
-async function publishPost(p) {
+async function publishLocal(p) {
   if (p.status === 'publishing') return;
   p.status = 'publishing'; save(); rerender(p.id);
   const results = {};
@@ -1181,12 +1613,11 @@ async function publishPost(p) {
     if (!acct.connected) { results[ch] = { ok: false, msg: `${P.name} isn't connected.` }; continue; }
     results[ch] = await (PUBLISHERS[ch] || PUBLISHERS.default)(p, acct, ch);
   }
-  const fresh = post(p.id) || p; // the post may have been replaced while awaiting
+  const fresh = post(p.id) || p;
   fresh.results = results;
   const okCount = Object.values(results).filter(r => r.ok).length;
   const failed = Object.entries(results).filter(([, r]) => !r.ok && !r.skipped).map(([c]) => PLATFORMS[c].name);
-  if (okCount) { fresh.status = 'published'; fresh.publishedAt = Date.now(); }
-  else fresh.status = 'failed';
+  if (okCount) { fresh.status = 'published'; fresh.publishedAt = Date.now(); } else fresh.status = 'failed';
   fresh.log.push({ at: Date.now(), who: 'system', text: okCount ? `published to ${okCount} channel${okCount > 1 ? 's' : ''}${failed.length ? `; failed on ${failed.join(', ')}` : ''}` : 'failed to send' });
   notify('all', okCount ? `“${fresh.title || 'Untitled'}” went out to ${okCount} channel${okCount > 1 ? 's' : ''}${failed.length ? `, failed on ${failed.join(', ')}` : ''}` : `“${fresh.title || 'Untitled'}” failed to send`, fresh.id);
   save(); rerender(fresh.id);
@@ -1196,12 +1627,96 @@ function rerender(id) {
   render();
   if (UI.draft && UI.draft.id === id && !UI.draft.isNew) { const p = post(id); if (p) { UI.draft = clone(p); refreshModalKeepFocus(); } }
 }
-// Scheduler: checks every 20s while the page is open.
-function tick() {
-  const due = S.posts.filter(p => p.status === 'scheduled' && p.scheduledAt && p.scheduledAt <= Date.now());
-  due.forEach(p => { if (approvalComplete(p)) publishPost(p); });
+// In the standalone file the open tab is the scheduler. The server does this itself.
+function tickLocal() {
+  S.posts.filter(p => p.status === 'scheduled' && p.scheduledAt && p.scheduledAt <= Date.now() && approvalComplete(p)).forEach(publishLocal);
 }
-setInterval(tick, 20000);
+
+/* ============================================================
+   LIVE UPDATES (server mode)
+   ============================================================ */
+// When a teammate changes the post open in the composer, take their activity and status but keep our unsaved edits.
+function syncDraft(p) {
+  const d = UI.draft; if (!d || d.isNew || d.id !== p.id) return;
+  const statusChanged = d.status !== p.status;
+  for (const k of ['status', 'likes', 'reposts', 'comments', 'log', 'results', 'publishedAt']) d[k] = clone(p[k]);
+  d.approval.decisions = clone(p.approval.decisions);
+  if (statusChanged && ['published', 'publishing', 'failed'].includes(p.status)) { UI.draft = clone(p); refreshModalKeepFocus(); return; }
+  const c = $('#c-comment'); const typed = c ? c.value : '';
+  $('#side').innerHTML = sidePane(); refreshChecks();
+  if (typed && $('#c-comment')) $('#c-comment').value = typed;
+  const pillEl = document.querySelector('.sheet-head .pill'); if (pillEl) pillEl.outerHTML = pill(d.status);
+}
+function onEvent(ev) {
+  switch (ev.type) {
+    case 'post': upsertPost(ev.post); syncDraft(ev.post); break;
+    case 'post-deleted': S.posts = S.posts.filter(p => p.id !== ev.id); if (UI.draft?.id === ev.id) { closeModal(); toast('A teammate deleted this post.'); } break;
+    case 'notification': if (!S.notifications.some(n => n.id === ev.notification.id)) S.notifications.unshift(ev.notification); break;
+    case 'presence': UI.online = ev.online; break;
+    case 'members': S.members = ev.members; UI.meUser = ev.members.find(m => m.id === S.me) || UI.meUser; break;
+    case 'workspace': S.labels = ev.labels; S.campaigns = ev.campaigns; S.settings = ev.settings; break;
+    case 'accounts': S.accounts = ev.accounts; break;
+    case 'chat-channel': upsertChannel(ev.channel); break;
+    case 'chat': {
+      const c = upsertChannel(ev.channel);
+      if (S.chatMsgs[ev.message.channelId]) addChatMsg(ev.message);
+      if (UI.view === 'chat' && UI.chatId === c.id && document.visibilityState === 'visible') markChatRead(c);
+      break;
+    }
+    case 'dm': {
+      if (UI.view === 'messages' && UI.threadId === ev.thread.id && document.visibilityState === 'visible' && ev.thread.unread) { ev.thread.unread = 0; B.dmRead(ev.thread.id).catch(() => {}); }
+      upsertThread(ev.thread);
+      if (ev.message && S.dmMsgs[ev.thread.id]) addDmMsg(ev.message);
+      break;
+    }
+    default: return;
+  }
+  if (UI.draft && ev.type !== 'post') return; // the composer is open; the page behind it can wait
+  scheduleRender();
+}
+let events = null;
+function connectEvents() {
+  events?.close();
+  let opened = false;
+  events = new EventSource('/api/events');
+  events.onmessage = e => { try { onEvent(JSON.parse(e.data)); } catch (err) { console.error(err); } };
+  // After a dropped connection we may have missed events, so reload the workspace.
+  events.onopen = () => { if (opened) loadWorkspace().catch(() => {}); opened = true; };
+}
+
+/* ============================================================
+   SIGN IN (server mode)
+   ============================================================ */
+function showAuth(kind, token) {
+  events?.close(); closeModal();
+  const forms = {
+    setup: { title: 'Set up Postboard', sub: 'Create the first admin account. You can invite the rest of the team next.', fields: [['name', 'Your name', 'text', 'name'], ['email', 'Work email', 'email', 'email'], ['password', 'Password (10+ characters)', 'password', 'new-password']], btn: 'Create workspace' },
+    login: { title: 'Sign in', sub: 'Use the email your admin invited.', fields: [['email', 'Email', 'email', 'email'], ['password', 'Password', 'password', 'current-password']], btn: 'Sign in' },
+    invite: { title: 'Join your team', sub: 'Loading your invite…', fields: [['password', 'Choose a password (10+ characters)', 'password', 'new-password']], btn: 'Join' },
+  }[kind];
+  $('#app').innerHTML = `<div class="auth"><form class="panel auth-card" id="auth-form" data-kind="${kind}" data-token="${h(token || '')}">
+    <span class="wordmark"><i></i>Postboard</span><h1>${forms.title}</h1><span class="muted" id="auth-sub">${forms.sub}</span>
+    ${forms.fields.map(([k, l, t, ac]) => `<div class="field"><label for="a-${k}">${l}</label><input class="input" id="a-${k}" name="${k}" type="${t}" autocomplete="${ac}" required${t === 'password' && kind !== 'login' ? ' minlength="10"' : ''}></div>`).join('')}
+    <span class="err" id="auth-err" role="alert"></span>
+    <button class="btn primary" style="justify-content:center">${forms.btn}</button></form></div>`;
+  if (kind === 'invite') fetch(`/api/auth/invite/${encodeURIComponent(token)}`).then(r => r.json().then(j => [r.ok, j])).then(([ok, j]) => {
+    $('#auth-sub').textContent = ok ? `You’re joining as ${j.name} (${j.email}).` : j.error;
+  }).catch(() => {});
+  $('#a-' + forms.fields[0][0]).focus();
+}
+async function submitAuth(f) {
+  const kind = f.dataset.kind; const v = k => f.querySelector(`[name=${k}]`)?.value;
+  const err = $('#auth-err'); err.textContent = '';
+  try {
+    const path = { setup: '/api/auth/setup', login: '/api/auth/login', invite: '/api/auth/accept-invite' }[kind];
+    const body = kind === 'invite' ? { token: f.dataset.token, password: v('password') } : { name: v('name'), email: v('email'), password: v('password') };
+    const r = await fetch(path, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Postboard': '1' }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || 'That didn’t work. Try again.');
+    if (kind === 'invite') history.replaceState(null, '', '/');
+    await startServer();
+  } catch (e) { err.textContent = e.message; }
+}
 
 /* ============================================================
    EVENTS
@@ -1209,17 +1724,12 @@ setInterval(tick, 20000);
 let toastTimer;
 function toast(msg) {
   let t = $('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
-  t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 3200);
+  t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 3600);
 }
-
-function decide(p, v) {
-  p.approval.decisions[S.me] = v;
-  addLog(p, v === 'approved' ? 'approved' : 'requested changes');
-  if (v === 'changes') { p.status = 'changes'; notify(p.author, `${member(S.me).name} requested changes on “${p.title}”`, p.id); }
-  else if (approvalComplete(p)) {
-    p.status = p.scheduledAt && p.scheduledAt > Date.now() ? 'scheduled' : 'approved';
-    notify(p.author, `“${p.title}” is approved${p.status === 'scheduled' ? ' and scheduled for ' + fmtWhen(p.scheduledAt) : ''}`, p.id);
-  }
+// Runs an async action, re-renders, and shows any error as a toast.
+async function run(fn, ok) {
+  try { const r = await fn(); render(); if (ok) toast(typeof ok === 'function' ? ok(r) : ok); return r ?? true; }
+  catch (e) { toast(e.message); render(); if (UI.draft) refreshChecks(); return null; }
 }
 
 document.addEventListener('click', async e => {
@@ -1227,29 +1737,53 @@ document.addEventListener('click', async e => {
   const act = el.dataset.act, v = el.dataset.v, id = el.dataset.id; const d = UI.draft;
   if (el.tagName === 'INPUT') return; // checkboxes handled in change
   switch (act) {
-    case 'view': UI.view = v; render(); $('#main').scrollTop = 0; break;
+    case 'view': UI.view = v; if (location.hash) history.replaceState(null, '', location.pathname + location.search); render(); $('#main').scrollTop = 0; break;
     case 'layout': UI.layout = v; render(); break;
     case 'cal-mode': UI.calMode = v; render(); break;
     case 'cal-today': UI.cursor = Date.now(); render(); break;
     case 'cal-step': { const n = +v; if (UI.calMode === '1m') { const x = new Date(UI.cursor); x.setDate(1); x.setMonth(x.getMonth() + n); UI.cursor = x.getTime(); } else UI.cursor = addDays(UI.cursor, n * (UI.calMode === '1w' ? 7 : 14)); render(); break; }
     case 'new': e.stopPropagation(); openComposer(null, el.dataset.day); break;
     case 'open': if (!e.target.closest('[data-act="new"]')) openComposer(id); break;
-    case 'decide': { const p = post(id); decide(p, v); save(); render(); toast(v === 'approved' ? 'Approved' : 'Sent back for changes'); break; }
-    case 'notif': { const n = S.notifications.find(x => x.id === id); n.read = true; save(); render(); if (post(n.postId)) openComposer(n.postId); break; }
-    case 'read-all': S.notifications.forEach(n => { if (n.to === S.me || n.to === 'all') n.read = true; }); save(); render(); break;
+    case 'decide': run(() => B.decide(id, v), v === 'approved' ? 'Approved' : 'Sent back for changes'); break;
+    case 'notif': {
+      const n = S.notifications.find(x => x.id === id); if (!n) break;
+      if (!n.read) B.readNotifs([n.id]).catch(() => {}); n.read = true;
+      if (n.link?.startsWith('chat:')) { UI.view = 'chat'; UI.chatId = n.link.slice(5); render(); }
+      else if (n.link?.startsWith('dm:')) { UI.view = 'messages'; UI.threadId = n.link.slice(3); UI.msgStatus = 'all'; UI.msgPlatform = ''; render(); }
+      else { render(); if (post(n.postId)) openComposer(n.postId); }
+      break;
+    }
+    case 'read-all': run(() => B.readNotifs('all')); break;
     case 'range': UI.range = +v; render(); break;
     case 'prof-tab': UI.profTab = v; UI.storyIdx = 0; render(); break;
     case 'story': UI.storyIdx += +v; render(); break;
     case 'story-open': UI.profTab = 'stories'; UI.storyIdx = +v; render(); break;
-    case 'toggle-conn': S.accounts[v].connected = !S.accounts[v].connected; save(); render(); toast(`${PLATFORMS[v].name} ${S.accounts[v].connected ? 'connected' : 'disconnected'}`); break;
-    case 'test-discord': { const r = await PUBLISHERS.discord({ title: '', body: '**Postboard test**: this channel is connected.', media: [] }, S.accounts.discord); toast(r.ok ? 'Test message sent to Discord' : r.msg); break; }
-    case 'toggle-approval': S.settings.requireApproval = !S.settings.requireApproval; save(); render(); break;
-    case 'del-camp': S.campaigns = S.campaigns.filter(c => c.id !== id); save(); render(); break;
-    case 'del-label': S.labels = S.labels.filter(l => l.id !== id); S.posts.forEach(p => p.labels = p.labels.filter(x => x !== id)); save(); render(); break;
+    case 'toggle-conn': { const on = MODE === 'server' ? S.accounts[v].mode === 'off' : !S.accounts[v].connected; run(() => B.account(v, { enabled: on }), `${PLATFORMS[v].name} ${on ? (MODE === 'server' ? 'is on in sandbox mode' : 'connected') : 'turned off'}`); break; }
+    case 'disconnect': run(() => B.disconnect(v), `${PLATFORMS[v].name} disconnected`); break;
+    case 'test-discord': run(() => B.testDiscord(), 'Test message sent to Discord'); break;
+    case 'toggle-approval': run(() => B.workspace({ settings: { ...S.settings, requireApproval: !S.settings.requireApproval } })); break;
+    case 'del-camp': run(() => B.workspace({ campaigns: S.campaigns.filter(c => c.id !== id) })); break;
+    case 'del-label': run(() => B.workspace({ labels: S.labels.filter(l => l.id !== id) })); break;
     case 'reset':
       if (el.dataset.confirm) { S = seed(); save(); render(); toast('Reset to sample data'); }
       else { el.dataset.confirm = '1'; el.textContent = 'Click again to erase your changes'; }
       break;
+    case 'logout': try { await api('POST', '/api/auth/logout'); } catch (err) {} events?.close(); showAuth('login'); break;
+    case 'reinvite': run(async () => { const r = await B.reinvite(id); UI.lastInvite = { name: member(id).name, url: r.inviteUrl }; }, 'New invite link ready'); break;
+    case 'rm-member':
+      if (el.dataset.confirm) run(() => B.removeMember(id), 'Teammate removed');
+      else { el.dataset.confirm = '1'; el.textContent = 'Click again to remove'; }
+      break;
+    case 'copy-invite': { const t = $('#invite-url').textContent; try { await navigator.clipboard.writeText(t); toast('Invite link copied'); } catch (err) { getSelection().selectAllChildren($('#invite-url')); toast('Copy was blocked. The link is selected, so press Ctrl+C or ⌘C.'); } break; }
+    // team chat
+    case 'chat-open': UI.chatId = id; render(); $('#chat-input')?.focus(); break;
+    case 'chat-dm': run(async () => { const c = await B.chatOpenDm(id); UI.chatId = c.id; }); break;
+    // social inbox
+    case 'msg-pf': UI.msgPlatform = v; UI.threadId = null; render(); break;
+    case 'msg-status': UI.msgStatus = v; UI.threadId = null; render(); break;
+    case 'thread-open': UI.threadId = id; render(); $('#dm-input')?.focus(); break;
+    case 'thread-status': run(() => B.dmUpdate(UI.threadId, { status: v }), v === 'done' ? 'Marked done' : 'Reopened'); break;
+    case 'dm-sync': run(() => B.dmSync(), r => { const n = Object.values(r || {}).reduce((s, x) => s + (x.added || 0), 0); return r?.skipped ? 'Checked a moment ago. Try again in 30 seconds.' : n ? `${n} new message${n > 1 ? 's' : ''}` : 'No new messages'; }); break;
     // composer
     case 'overlay': if (e.target === el) closeModal(); break;
     case 'close': closeModal(); break;
@@ -1263,29 +1797,24 @@ document.addEventListener('click', async e => {
     case 'side-tab': UI.sideTab = v; $('#side').innerHTML = sidePane(); break;
     case 'copy-text': { const txt = textFor(d.body, v) + (d.tagged.trim() ? '\n\n' + d.tagged : ''); try { await navigator.clipboard.writeText(txt); toast(`Copied ${PLATFORMS[v].name} text`); } catch (err) { toast('Copy was blocked. Select the preview text and copy it manually.'); } break; }
     case 'like': case 'repost': {
-      const key = act === 'like' ? 'likes' : 'reposts'; const i = d[key].indexOf(S.me); i >= 0 ? d[key].splice(i, 1) : d[key].push(S.me);
-      if (!d.isNew) { const p = post(d.id); p[key] = d[key].slice(); if (i < 0) { addLog(p, act === 'like' ? 'liked the post' : 'signed up to repost'); if (p.author !== S.me) notify(p.author, `${member(S.me).name} ${act === 'like' ? 'liked' : 'will repost'} “${p.title}”`, p.id); d.log = clone(p.log); } save(); render(); }
-      $('#side').innerHTML = sidePane(); break;
+      if (d.isNew) break;
+      try { const p = await B.react(d.id, act); for (const k of ['likes', 'reposts', 'log']) d[k] = clone(p[k]); $('#side').innerHTML = sidePane(); render(); } catch (err) { toast(err.message); }
+      break;
     }
-    case 'save': { const p = commitDraft(['scheduled', 'in_review', 'changes', 'approved', 'failed'].includes(d.status) ? d.status : 'draft'); addLog(p, 'saved changes'); save(); closeModal(); render(); toast('Saved'); break; }
-    case 'request': {
-      d.approval.decisions = {}; addLog(d, 'requested approval');
-      const p = commitDraft('in_review');
-      p.approval.approvers.forEach(a => { if (a !== S.me) notify(a, `${member(S.me).name} asked you to approve “${p.title || 'Untitled'}”`, p.id); });
-      if (p.approval.approvers.includes(S.me)) { /* self-approval still needs an explicit click */ }
-      save(); closeModal(); render(); toast('Sent for approval'); break;
-    }
-    case 'decide-m': { decide(d, v); commitDraft(); closeModal(); render(); toast(v === 'approved' ? 'Approved' : 'Sent back for changes'); break; }
+    case 'save': { if (await run(() => B.save(d), 'Saved')) { closeModal(); render(); } break; }
+    case 'request': { if (await run(async () => B.requestApproval((await B.save(d)).id), 'Sent for approval')) { closeModal(); render(); } break; }
+    case 'decide-m': { if (await run(() => B.decide(d.id, v), v === 'approved' ? 'Approved' : 'Sent back for changes')) { closeModal(); render(); } break; }
     case 'schedule': {
-      if (d.scheduledAt <= Date.now()) { toast('Pick a time in the future, or use Send now.'); break; }
-      addLog(d, `scheduled for ${fmtWhen(d.scheduledAt)}`); commitDraft('scheduled'); closeModal(); render(); toast(`Scheduled for ${fmtWhen(d.scheduledAt)}`); break;
+      if (!d.scheduledAt || d.scheduledAt <= Date.now()) { toast('Pick a time in the future, or use Send now.'); break; }
+      if (await run(async () => { const s = await B.save(d); return s.status === 'scheduled' ? s : B.schedule(s.id); }, r => `Scheduled for ${fmtWhen(r.scheduledAt)}`)) { closeModal(); render(); }
+      break;
     }
-    case 'publish-now': { addLog(d, 'sent the post now'); const p = commitDraft(); if (!p.scheduledAt || p.scheduledAt > Date.now()) p.scheduledAt = Date.now(); closeModal(); render(); publishPost(p); break; }
+    case 'publish-now': { if (await run(async () => B.publishNow((await B.save(d)).id), MODE === 'server' ? 'Sending…' : null)) { closeModal(); render(); } break; }
     case 'delete':
-      if (el.dataset.confirm) { S.posts = S.posts.filter(p => p.id !== d.id); save(); closeModal(); render(); toast('Post deleted'); }
+      if (el.dataset.confirm) { if (await run(() => B.remove(d.id), 'Post deleted')) { closeModal(); render(); } }
       else { el.dataset.confirm = '1'; el.querySelector('span').textContent = 'Click again to delete'; }
       break;
-    case 'duplicate': { const c = clone(d); Object.assign(c, { id: uid(), title: d.title + ' (copy)', status: 'draft', results: null, publishedAt: null, scheduledAt: null, likes: [], reposts: [], comments: [], log: [], createdAt: Date.now(), author: S.me, isNew: true }); c.approval.decisions = {}; UI.draft = c; renderModal(); break; }
+    case 'duplicate': { const c = clone(d); Object.assign(c, { id: uid(), title: d.title + ' (copy)', status: 'draft', results: null, publishedAt: null, scheduledAt: null, likes: [], reposts: [], comments: [], log: [], createdAt: Date.now(), author: S.me, isNew: true }); c.approval.decisions = {}; UI.draft = c; UI.sideTab = 'preview'; renderModal(); break; }
   }
 });
 
@@ -1297,8 +1826,13 @@ document.addEventListener('change', e => {
   if (t.id === 'f-status') { UI.filters.status = t.value; render(); return; }
   if (t.id === 'an-pf') { UI.anPf = t.value; render(); return; }
   if (t.id === 'prof-pf') { UI.profPf = t.value; UI.storyIdx = 0; render(); return; }
-  if (t.dataset.act === 'def-approver') { const a = S.settings.defaultApprovers; t.checked ? a.push(t.value) : a.splice(a.indexOf(t.value), 1); save(); render(); return; }
-  if (t.dataset.acct) { S.accounts[t.dataset.acct][t.dataset.k] = t.value.trim(); save(); render(); return; }
+  if (t.id === 'dm-assign') { run(() => B.dmUpdate(UI.threadId, { assignedTo: t.value || null }), t.value ? `Assigned to ${member(t.value).name}` : 'Unassigned'); return; }
+  if (t.dataset.act === 'def-approver') { const a = S.settings.defaultApprovers.slice(); t.checked ? a.push(t.value) : a.splice(a.indexOf(t.value), 1); run(() => B.workspace({ settings: { ...S.settings, defaultApprovers: a } })); return; }
+  if (t.dataset.acct) {
+    const value = t.value.trim(); const secret = ['webhook', 'botToken'].includes(t.dataset.k);
+    if (MODE === 'server' && secret && !value) return; // a blank secret field means "keep the saved one"
+    run(() => B.account(t.dataset.acct, { [t.dataset.k]: value }), secret ? 'Saved' : null); return;
+  }
   if (!d) return;
   if (t.id === 'c-when') { d.scheduledAt = t.value ? new Date(t.value).getTime() : null; refreshModalKeepFocus(); }
   else if (t.dataset.act === 'label') { t.checked ? d.labels.push(t.value) : d.labels.splice(d.labels.indexOf(t.value), 1); refreshModalKeepFocus(); }
@@ -1308,7 +1842,9 @@ document.addEventListener('change', e => {
 
 let warnTimer;
 document.addEventListener('input', e => {
-  const t = e.target; const d = UI.draft; if (!d) return;
+  const t = e.target;
+  if (t.id === 'chat-input' || t.id === 'dm-input') { t.style.height = 'auto'; t.style.height = Math.min(160, t.scrollHeight + 2) + 'px'; return; }
+  const d = UI.draft; if (!d) return;
   if (t.id === 'c-body') { d.body = t.value; refreshPreview(); clearTimeout(warnTimer); warnTimer = setTimeout(refreshChecks, 300); }
   else if (t.id === 'c-title') { d.title = t.value; clearTimeout(warnTimer); warnTimer = setTimeout(refreshChecks, 300); }
   else if (t.id === 'c-tagged') { d.tagged = t.value; refreshPreview(); }
@@ -1319,44 +1855,58 @@ document.addEventListener('keydown', e => {
     if (e.key.toLowerCase() === 'b') { e.preventDefault(); wrapSelection('**'); }
     if (e.key.toLowerCase() === 'i') { e.preventDefault(); wrapSelection('*'); }
   }
+  if ((e.target.id === 'chat-input' || e.target.id === 'dm-input') && e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); e.target.form.requestSubmit(); }
   if (e.key === 'Escape' && UI.draft) closeModal();
   if ((e.key === 'Enter' || e.key === ' ') && e.target.classList?.contains('card')) { e.preventDefault(); openComposer(e.target.dataset.id); }
 });
 
-document.addEventListener('submit', e => {
+document.addEventListener('submit', async e => {
   e.preventDefault(); const f = e.target;
+  if (f.id === 'auth-form') return submitAuth(f);
   if (f.id === 'comment-form') {
-    const ta = $('#c-comment'); const text = ta.value.trim(); if (!text) return; const d = UI.draft;
-    const c = { id: uid(), who: S.me, text, at: Date.now() }; d.comments.push(c);
-    const mentioned = S.members.filter(m => new RegExp('@' + m.name.split(' ')[0] + '\\b', 'i').test(text) && m.id !== S.me);
-    if (!d.isNew) {
-      const p = post(d.id); p.comments = clone(d.comments); addLog(p, 'commented'); d.log = clone(p.log);
-      mentioned.forEach(m => notify(m.id, `${member(S.me).name} mentioned you on “${p.title}”`, p.id));
-      if (p.author !== S.me && !mentioned.find(m => m.id === p.author)) notify(p.author, `${member(S.me).name} commented on “${p.title}”`, p.id);
-      save(); render();
-    }
-    $('#side').innerHTML = sidePane();
+    const ta = $('#c-comment'); const text = ta.value.trim(); const d = UI.draft; if (!text || d.isNew) return;
+    try { const p = await B.comment(d.id, text); for (const k of ['comments', 'log']) d[k] = clone(p[k]); ta.value = ''; $('#side').innerHTML = sidePane(); render(); } catch (err) { toast(err.message); }
   }
-  if (f.id === 'add-member') { const n = $('#nm-name').value.trim(); if (!n) return; const hues = ['#0e7490', '#b45309', '#be185d', '#4d7c0f']; S.members.push({ id: uid(), name: n, role: $('#nm-role').value.trim() || 'Member', color: hues[S.members.length % hues.length] }); save(); render(); }
-  if (f.id === 'add-camp') { const s = $('#cp-start').value, en = $('#cp-end').value; if (!s || !en) return; S.campaigns.push({ id: uid(), name: $('#cp-name').value.trim(), start: s <= en ? s : en, end: s <= en ? en : s, h: Math.floor(Math.random() * 360) }); save(); render(); }
-  if (f.id === 'add-label') { S.labels.push({ id: uid(), name: $('#lb-name').value.trim(), h: Math.floor(Math.random() * 360) }); save(); render(); }
+  if (f.id === 'chat-form') {
+    const ta = $('#chat-input'); const text = ta.value.trim(); if (!text) return;
+    ta.value = ''; ta.style.height = '';
+    try { await B.chatSend(UI.chatId, text); render(); $('#chat-input')?.focus(); } catch (err) { ta.value = text; toast(err.message); }
+  }
+  if (f.id === 'new-channel') { const n = $('#nc-name').value; run(async () => { const c = await B.chatCreate(n); UI.chatId = c.id; return c; }, c => `Created #${c.name}`); }
+  if (f.id === 'dm-form') {
+    const ta = $('#dm-input'); const text = ta.value.trim(); if (!text) return;
+    ta.value = ''; ta.style.height = '';
+    try {
+      const m = await B.dmReply(UI.threadId, text); render(); $('#dm-input')?.focus();
+      if (m.delivery === 'failed') toast(`Not delivered: ${m.error}`); else if (m.delivery === 'sandbox') toast('Recorded in sandbox. Nothing was sent.');
+    } catch (err) { ta.value = text; toast(err.message); }
+  }
+  if (f.id === 'dm-sim') { run(async () => { const t = await B.dmSimulate({ platform: $('#sim-pf').value, name: $('#sim-name').value.trim() || 'Test customer', text: $('#sim-text').value.trim() || 'Hi!' }); if (t) { UI.threadId = t.id; UI.msgStatus = 'open'; UI.msgPlatform = ''; } }, 'Test message added'); }
+  if (f.id === 'add-member') {
+    const name = $('#nm-name').value.trim(); if (!name) return;
+    run(async () => { const r = await B.invite({ name, email: $('#nm-email')?.value.trim(), role: $('#nm-role').value.trim() }); if (r.inviteUrl) { UI.lastInvite = { name, url: r.inviteUrl }; if (!S.members.some(m => m.id === r.member.id)) S.members.push(r.member); } }, MODE === 'server' ? 'Invite created. Copy the link below.' : 'Teammate added');
+  }
+  if (f.id === 'add-camp') { const s = $('#cp-start').value, en = $('#cp-end').value; if (!s || !en) return; run(() => B.workspace({ campaigns: [...S.campaigns, { id: uid(), name: $('#cp-name').value.trim(), start: s <= en ? s : en, end: s <= en ? en : s, h: Math.floor(Math.random() * 360) }] }), 'Campaign added'); }
+  if (f.id === 'add-label') run(() => B.workspace({ labels: [...S.labels, { id: uid(), name: $('#lb-name').value.trim(), h: Math.floor(Math.random() * 360) }] }), 'Label added');
+  if (f.id === 'change-pw') run(() => api('POST', '/api/me/password', { current: $('#pw-cur').value, next: $('#pw-new').value }), 'Password changed');
 });
 
 /* ---------- media upload: downscale images so they fit in storage ---------- */
 function addFiles(files) {
   const d = UI.draft; if (!d) return;
+  const maxVideo = MODE === 'server' ? 25e6 : 3.5e6;
   files.forEach(file => {
     if (file.type.startsWith('video/')) {
-      if (file.size > 3.5e6) { toast('Videos over 3.5 MB are too large to keep in browser storage. Try a shorter clip.'); return; }
+      if (file.size > maxVideo) { toast(MODE === 'server' ? 'Videos can be up to 25 MB.' : 'Videos over 3.5 MB are too large to keep in browser storage. Try a shorter clip, or run the server.'); return; }
       const r = new FileReader(); r.onload = () => { d.media.push({ kind: 'video', src: r.result }); refreshModalKeepFocus(); }; r.readAsDataURL(file); return;
     }
     if (!file.type.startsWith('image/')) return;
     const img = new Image(); const url = URL.createObjectURL(file);
     img.onload = () => {
-      const max = 1080, k = Math.min(1, max / Math.max(img.width, img.height));
+      const max = MODE === 'server' ? 2160 : 1080, k = Math.min(1, max / Math.max(img.width, img.height));
       const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
       c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
-      d.media.push({ kind: 'image', src: c.toDataURL('image/jpeg', 0.82) }); refreshModalKeepFocus();
+      d.media.push({ kind: 'image', src: c.toDataURL('image/jpeg', MODE === 'server' ? 0.9 : 0.82) }); refreshModalKeepFocus();
     };
     img.src = url;
   });
@@ -1379,19 +1929,63 @@ document.addEventListener('dragover', e => {
 document.addEventListener('drop', e => {
   if (dragId) {
     const cell = e.target.closest('.cell'); if (!cell) return; e.preventDefault();
-    const p = post(dragId); const old = new Date(p.scheduledAt); const nd = new Date(keyToTs(cell.dataset.day)); nd.setHours(old.getHours(), old.getMinutes(), 0, 0);
-    if (nd.getTime() < Date.now()) { toast('That time has already passed. Drop it on a later day.'); dragId = null; render(); return; }
-    p.scheduledAt = nd.getTime(); addLog(p, `moved to ${fmtWhen(p.scheduledAt)}`); dragId = null; save(); render(); toast(`Moved to ${fmtWhen(p.scheduledAt)}`);
+    const p = post(dragId); const before = p.status; const old = new Date(p.scheduledAt); const nd = new Date(keyToTs(cell.dataset.day)); nd.setHours(old.getHours(), old.getMinutes(), 0, 0);
+    dragId = null;
+    if (nd.getTime() < Date.now()) { toast('That time has already passed. Drop it on a later day.'); render(); return; }
+    run(() => B.patch(p.id, { scheduledAt: nd.getTime() }), r => r.status === 'in_review' && before !== 'in_review' ? 'Moved. It needs approval again.' : `Moved to ${fmtWhen(nd.getTime())}`);
   }
   if (gDragId) {
     const t = e.target.closest('[data-gdrag]'); if (!t || t.dataset.gdrag === gDragId) return; e.preventDefault();
-    const a = post(gDragId), b = post(t.dataset.gdrag); [a.scheduledAt, b.scheduledAt] = [b.scheduledAt, a.scheduledAt];
-    addLog(a, `swapped times with “${b.title}”`); addLog(b, `swapped times with “${a.title}”`); gDragId = null; save(); render(); toast('Swapped send times');
+    const a = post(gDragId), b = post(t.dataset.gdrag); gDragId = null;
+    const [ta, tb] = [a.scheduledAt, b.scheduledAt];
+    run(async () => { await B.patch(a.id, { scheduledAt: tb }); await B.patch(b.id, { scheduledAt: ta }); }, 'Swapped send times');
   }
 });
 
-render();
-tick();
+/* ============================================================
+   START
+   ============================================================ */
+function startLocal() {
+  MODE = 'local'; B = LocalBackend;
+  S = load() || seed();
+  if (!S.chat) Object.assign(S, seedTalk()); // saved before chat existed
+  render(); tickLocal(); setInterval(tickLocal, 20000);
+}
+async function loadWorkspace() {
+  const d = await api('GET', '/api/bootstrap');
+  const keepChat = S && S.me === d.me.id ? S.chatMsgs : {};
+  S = { me: d.me.id, members: d.members, accounts: d.accounts, labels: d.labels, campaigns: d.campaigns, settings: d.settings, posts: d.posts, notifications: d.notifications,
+    chat: d.chat, chatMsgs: keepChat, inbox: d.inbox, dmMsgs: {}, dmPlatforms: d.dmPlatforms };
+  UI.meUser = d.me; UI.online = d.online;
+  for (const id of Object.keys(keepChat)) B.chatMessages(id).then(scheduleRender).catch(() => {});
+  scheduleRender();
+}
+async function startServer() {
+  MODE = 'server'; B = ServerBackend; S = null;
+  await loadWorkspace();
+  connectEvents();
+  const q = new URLSearchParams(location.search);
+  if (q.get('connected')) toast(`Connected ${q.get('connected').split(',').map(p => PLATFORMS[p]?.name || p).join(' and ')}`);
+  if (q.get('oauth_error')) toast(`Couldn’t connect: ${q.get('oauth_error')}`);
+  if (q.has('connected') || q.has('oauth_error')) history.replaceState(null, '', '/' + location.hash);
+  render();
+}
+async function boot() {
+  let status = null;
+  if (location.protocol.startsWith('http')) {
+    try {
+      const r = await fetch('/api/auth/status', { credentials: 'same-origin' });
+      if (r.ok && (r.headers.get('content-type') || '').includes('application/json')) status = await r.json();
+    } catch (e) { /* no server here: run standalone */ }
+  }
+  if (!status) return startLocal();
+  MODE = 'server';
+  const invite = location.pathname.match(/^\/invite\/([\w-]+)/);
+  if (invite) return showAuth('invite', invite[1]);
+  if (!status.user) return showAuth(status.setupNeeded ? 'setup' : 'login');
+  try { await startServer(); } catch (e) { showAuth('login'); toast(e.message); }
+}
+boot();
 </script>
 </body>
 </html>
