@@ -1,0 +1,1397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+</head>
+<body>
+<title>Postboard</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a quiet sidebar, a working canvas, and a two-pane composer sheet that slides over it. */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #eff1f5;
+  --line: #e2e5eb;
+  --line-strong: #cdd2dc;
+  --fg: #141821;
+  --muted: #687184;
+  --faint: #9aa2b1;
+  --accent: #2f45d8;
+  --accent-fg: #ffffff;
+  --accent-soft: #e7eafc;
+  --ok: #18804f;
+  --ok-soft: #e1f3ea;
+  --warn: #a8660c;
+  --warn-soft: #fbefdc;
+  --bad: #c0392b;
+  --bad-soft: #fbe5e2;
+  --shadow: 0 1px 2px rgba(20, 24, 33, .05), 0 6px 20px rgba(20, 24, 33, .06);
+  --font-display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --font-body: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1116; --surface: #161922; --surface-2: #1d212c; --line: #262b38; --line-strong: #353b4b;
+    --fg: #e8eaf0; --muted: #98a0b2; --faint: #6a7285; --accent: #7d8cff; --accent-fg: #0f1116; --accent-soft: #232a52;
+    --ok: #4cc38a; --ok-soft: #13301f; --warn: #e2a648; --warn-soft: #33260f; --bad: #f07a6c; --bad-soft: #3a1b18;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1116; --surface: #161922; --surface-2: #1d212c; --line: #262b38; --line-strong: #353b4b;
+  --fg: #e8eaf0; --muted: #98a0b2; --faint: #6a7285; --accent: #7d8cff; --accent-fg: #0f1116; --accent-soft: #232a52;
+  --ok: #4cc38a; --ok-soft: #13301f; --warn: #e2a648; --warn-soft: #33260f; --bad: #f07a6c; --bad-soft: #3a1b18;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.45 var(--font-body); -webkit-font-smoothing: antialiased; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mono { font-family: var(--font-mono); font-size: 11px; letter-spacing: .04em; }
+.eyebrow { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+.muted { color: var(--muted); }
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+h1 { font: 500 22px/1.2 var(--font-display); letter-spacing: -.01em; }
+h2 { font: 600 15px/1.3 var(--font-body); }
+svg { flex: none; }
+
+/* ---------- shell ---------- */
+.app { display: grid; grid-template-columns: 224px minmax(0, 1fr); height: 100%; }
+.side { border-right: 1px solid var(--line); background: var(--surface); padding: 20px 12px; display: flex; flex-direction: column; gap: 18px; overflow-y: auto; padding-left: max(12px, env(safe-area-inset-left, 0px)); }
+.brand { display: flex; align-items: center; justify-content: space-between; padding: 0 8px; }
+.wordmark { font: 700 19px/1 var(--font-display); letter-spacing: -.02em; display: flex; align-items: center; gap: 8px; }
+.wordmark i { width: 18px; height: 18px; border-radius: 5px; background: var(--accent); display: inline-block; position: relative; }
+.wordmark i::after { content: ""; position: absolute; inset: 5px 4px auto 4px; height: 2px; background: var(--accent-fg); box-shadow: 0 4px 0 var(--accent-fg); border-radius: 1px; }
+.nav-group { display: flex; flex-direction: column; gap: 2px; }
+.nav-group .eyebrow { padding: 0 8px 4px; }
+.nav { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 7px; border: 0; background: none; text-align: left; color: var(--fg); width: 100%; }
+.nav:hover { background: var(--surface-2); }
+.nav.on { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+.nav svg { width: 16px; height: 16px; }
+.nav .count { margin-left: auto; font: 500 11px/1 var(--font-mono); background: var(--accent); color: var(--accent-fg); border-radius: 20px; padding: 3px 6px; }
+.whoami { margin-top: auto; padding: 10px 8px 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
+.whoami select { width: 100%; padding: 7px 8px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); }
+.main { overflow: auto; min-width: 0; }
+.page { padding-block: 22px 60px; padding-left: max(24px, env(safe-area-inset-left, 0px)); padding-right: max(24px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 18px; }
+
+/* ---------- controls ---------- */
+.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.spread { justify-content: space-between; }
+.btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); padding: 7px 12px; border-radius: 8px; font-weight: 500; white-space: nowrap; }
+.btn:hover { border-color: var(--line-strong); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.ok { background: var(--ok); border-color: var(--ok); color: #fff; }
+.btn.danger { color: var(--bad); }
+.btn.ghost { border-color: transparent; background: none; }
+.btn.ghost:hover { background: var(--surface-2); }
+.btn.icon { padding: 7px; }
+.btn svg { width: 15px; height: 15px; }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+.seg { display: inline-flex; background: var(--surface-2); border-radius: 8px; padding: 2px; gap: 2px; }
+.seg button { border: 0; background: none; padding: 5px 10px; border-radius: 6px; color: var(--muted); font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
+.seg button.on { background: var(--surface); color: var(--fg); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.seg button[disabled] { opacity: .4; cursor: not-allowed; }
+.field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.field > label, .label { font-size: 12px; font-weight: 500; color: var(--muted); }
+.input, select.input, textarea.input { width: 100%; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 10px; }
+.input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
+.pad { padding: 16px; }
+.empty { padding: 28px 16px; text-align: center; color: var(--muted); }
+
+/* ---------- platform + labels ---------- */
+.pf { width: 18px; height: 18px; border-radius: 50%; display: inline-grid; place-items: center; color: #fff; font: 700 8.5px/1 var(--font-body); letter-spacing: -.02em; box-shadow: 0 0 0 1.5px var(--surface); flex: none; }
+.pf.lg { width: 26px; height: 26px; font-size: 11px; }
+.pfs { display: inline-flex; }
+.pfs .pf + .pf { margin-left: -4px; }
+.tag { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; border-radius: 4px; font: 500 10px/1 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; background: hsl(var(--h) 80% 93%); color: hsl(var(--h) 55% 34%); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .tag { background: hsl(var(--h) 35% 20%); color: hsl(var(--h) 70% 76%); } }
+:root[data-theme="dark"] .tag { background: hsl(var(--h) 35% 20%); color: hsl(var(--h) 70% 76%); }
+.pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 20px; font-size: 12px; font-weight: 500; background: var(--surface-2); color: var(--muted); white-space: nowrap; }
+.pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.pill.draft { color: var(--muted); }
+.pill.in_review { background: var(--warn-soft); color: var(--warn); }
+.pill.changes, .pill.failed { background: var(--bad-soft); color: var(--bad); }
+.pill.scheduled, .pill.approved { background: var(--accent-soft); color: var(--accent); }
+.pill.published { background: var(--ok-soft); color: var(--ok); }
+.pill.publishing { background: var(--accent-soft); color: var(--accent); }
+.avatar { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font: 600 10px/1 var(--font-body); color: #fff; flex: none; }
+.avatars { display: inline-flex; }
+.avatars .avatar { box-shadow: 0 0 0 2px var(--surface); }
+.avatars .avatar + .avatar { margin-left: -6px; }
+
+/* ---------- calendar ---------- */
+.cal-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.cal-head h1 b { font-weight: 500; }
+.cal-head h1 span { color: var(--faint); }
+.filters { display: flex; gap: 8px; flex-wrap: wrap; }
+.filters select { padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 13px; }
+.cal-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+.cal { min-width: 980px; }
+.week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--line); background: linear-gradient(to right, var(--line) 1px, transparent 1px) 0 0 / calc(100% / 7) 100%; }
+.week:first-child { border-top: 0; }
+.dh { padding: 10px 10px 6px; display: flex; flex-direction: column; gap: 2px; }
+.dh .num { font: 500 13px/1 var(--font-mono); display: flex; gap: 8px; align-items: baseline; }
+.dh .num small { font-size: 10px; color: var(--faint); letter-spacing: .06em; text-transform: uppercase; }
+.dh.today .num > span:first-child { background: var(--accent); color: var(--accent-fg); padding: 3px 6px; border-radius: 5px; margin: -3px 0; }
+.dh.out { opacity: .5; }
+.banner { margin: 2px 6px; padding: 3px 10px; border-radius: 6px; font: 500 10.5px/1.4 var(--font-mono); letter-spacing: .07em; text-transform: uppercase; background: hsl(var(--h) 85% 92%); color: hsl(var(--h) 50% 34%); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .banner { background: hsl(var(--h) 35% 22%); color: hsl(var(--h) 75% 78%); } }
+:root[data-theme="dark"] .banner { background: hsl(var(--h) 35% 22%); color: hsl(var(--h) 75% 78%); }
+.cell { min-height: 190px; padding: 6px; display: flex; flex-direction: column; gap: 6px; position: relative; }
+.cell.past { background: color-mix(in srgb, var(--surface-2) 45%, transparent); margin-left: 1px; }
+.cell.drop { background: var(--accent-soft); }
+.cell .add { position: absolute; right: 6px; bottom: 6px; opacity: 0; transition: opacity .15s; }
+.cell:hover .add, .cell:focus-within .add { opacity: 1; }
+.month .cell { min-height: 120px; }
+.card { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 9px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; text-align: left; width: 100%; box-shadow: 0 1px 1px rgba(0,0,0,.02); }
+.card:hover { border-color: var(--line-strong); box-shadow: var(--shadow); }
+.card.draft { border-style: dashed; }
+.card.draft .card-title { color: var(--muted); }
+.card.dragging { opacity: .4; }
+.card-meta { display: flex; align-items: center; gap: 4px 6px; color: var(--muted); flex-wrap: wrap; }
+.tag { white-space: nowrap; }
+.card-meta svg { width: 12px; height: 12px; }
+.card-title { font-size: 13.5px; font-weight: 500; line-height: 1.3; overflow-wrap: anywhere; }
+.card-foot { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.soc { display: inline-flex; gap: 8px; color: var(--faint); font: 11px/1 var(--font-mono); }
+.soc span { display: inline-flex; align-items: center; gap: 3px; }
+.soc svg { width: 12px; height: 12px; }
+.fmt { font: 500 9.5px/1 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--faint); border: 1px solid var(--line); border-radius: 4px; padding: 2px 4px; }
+.st-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); flex: none; }
+.st-dot.in_review { background: var(--warn); } .st-dot.changes, .st-dot.failed { background: var(--bad); }
+.st-dot.scheduled, .st-dot.approved, .st-dot.publishing { background: var(--accent); } .st-dot.published { background: var(--ok); }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; color: var(--muted); font-size: 12px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+
+/* list view */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font: 500 10.5px/1 var(--font-mono); letter-spacing: .07em; text-transform: uppercase; color: var(--faint); padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+tr:last-child td { border-bottom: 0; }
+tr.click { cursor: pointer; }
+tr.click:hover td { background: var(--surface-2); }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ---------- modal / composer ---------- */
+.overlay { position: fixed; inset: 0; background: rgba(12, 14, 20, .45); display: grid; place-items: center; padding: 24px; z-index: 50; }
+.sheet { background: var(--bg); border-radius: 14px; width: min(1180px, 100%); max-height: calc(100vh - 48px); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+.sheet-head { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--surface); }
+.sheet-head .title-input { flex: 1; min-width: 0; border: 0; background: none; font: 500 18px/1.2 var(--font-display); padding: 4px 0; }
+.sheet-head .title-input:focus { outline: none; }
+.sheet-body { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); flex: 1; min-height: 0; }
+.sheet-body > div { overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.sheet-body > div > * { flex-shrink: 0; }
+.sheet-body > div + div { border-left: 1px solid var(--line); background: var(--surface-2); }
+.sheet-foot { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line); background: var(--surface); flex-wrap: wrap; }
+.sheet-foot .grow { flex: 1; }
+.editor { border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); overflow: hidden; }
+.editor:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.toolbar { display: flex; align-items: center; gap: 2px; padding: 5px 6px; border-bottom: 1px solid var(--line); }
+.toolbar button { border: 0; background: none; width: 30px; height: 28px; border-radius: 6px; display: grid; place-items: center; color: var(--muted); }
+.toolbar button:hover { background: var(--surface-2); color: var(--fg); }
+.toolbar .sep { width: 1px; height: 18px; background: var(--line); margin: 0 4px; }
+.toolbar .hint { margin-left: auto; color: var(--faint); font-size: 11.5px; padding-right: 4px; }
+.editor textarea { display: block; width: 100%; min-height: 170px; border: 0; padding: 12px; resize: vertical; background: none; line-height: 1.55; }
+.editor textarea:focus { outline: none; }
+.chan-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 6px; }
+.chan { display: flex; align-items: center; gap: 8px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); text-align: left; font-size: 13px; }
+.chan.on { border-color: var(--accent); background: var(--accent-soft); }
+.chan.off { opacity: .55; }
+.chan small { display: block; font-size: 10.5px; color: var(--muted); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.check-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.chk { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px 4px 6px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); font-size: 12.5px; }
+.chk.on { border-color: var(--accent); background: var(--accent-soft); }
+.chk input { margin: 0; accent-color: var(--accent); }
+.media-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.thumb { width: 72px; height: 72px; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid var(--line); }
+.thumb img, .thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb button { position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%; border: 0; background: rgba(0,0,0,.6); color: #fff; font-size: 12px; line-height: 1; }
+.dropzone { width: 72px; height: 72px; border: 1.5px dashed var(--line-strong); border-radius: 8px; display: grid; place-items: center; color: var(--muted); font-size: 11px; text-align: center; cursor: pointer; background: var(--surface); }
+.dropzone:hover { border-color: var(--accent); color: var(--accent); }
+.art { background: linear-gradient(140deg, hsl(var(--h) 62% 62%), hsl(calc(var(--h) + 38) 50% 34%)); color: #fff; display: grid; place-items: end start; padding: 8px; font: 600 11px/1.2 var(--font-display); text-shadow: 0 1px 2px rgba(0,0,0,.3); width: 100%; height: 100%; overflow: hidden; }
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tabs button { border: 0; background: none; padding: 8px 10px; color: var(--muted); font-weight: 500; border-bottom: 2px solid transparent; margin-bottom: -1px; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.tabs button.on { color: var(--fg); border-bottom-color: var(--fg); }
+.warn-list { display: flex; flex-direction: column; gap: 6px; }
+.warn { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; padding: 8px 10px; border-radius: 8px; background: var(--warn-soft); color: var(--warn); }
+.warn.bad { background: var(--bad-soft); color: var(--bad); }
+.warn svg { width: 14px; height: 14px; margin-top: 2px; }
+
+/* platform previews */
+.pv { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; max-width: 460px; width: 100%; margin: 0 auto; }
+.pv-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
+.pv-head .who { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+.pv-head .who b { font-weight: 600; font-size: 13.5px; }
+.pv-head .who span { color: var(--muted); font-size: 12px; }
+.pv-av { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(140deg, #c46b2d, #6b3416); color: #fff; display: grid; place-items: center; font: 700 13px/1 var(--font-display); flex: none; }
+.pv-text { padding: 0 12px 10px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.5; }
+.pv-text .ht { color: var(--accent); }
+.pv-media { aspect-ratio: 1 / 1; background: var(--surface-2); max-width: 100%; }
+.pv-media.wide { aspect-ratio: 16 / 9; }
+.pv-media img, .pv-media video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pv-actions { display: flex; gap: 18px; padding: 10px 12px; color: var(--muted); border-top: 1px solid var(--line); font-size: 12.5px; }
+.pv-actions span { display: inline-flex; align-items: center; gap: 5px; }
+.pv-actions svg { width: 15px; height: 15px; }
+.pv-tagged { padding: 0 12px 10px; color: var(--muted); font-size: 12.5px; }
+.pv-dc { background: #313338; color: #dbdee1; border: 0; }
+.pv-dc .pv-head .who span { color: #949ba4; }
+.pv-dc .pv-text { color: #dbdee1; }
+.pv-dc .pv-text code { background: #1e1f22; padding: 1px 4px; border-radius: 3px; }
+.vert { width: 250px; max-width: 100%; aspect-ratio: 9 / 16; margin: 0 auto; border-radius: 16px; overflow: hidden; position: relative; background: #111; color: #fff; }
+.vert .bg { position: absolute; inset: 0; }
+.vert .bg img, .vert .bg video { width: 100%; height: 100%; object-fit: cover; }
+.vert .bg .art { place-items: center; font-size: 16px; text-align: center; padding: 20px; }
+.vert .top { position: absolute; inset: 10px 10px auto; display: flex; flex-direction: column; gap: 8px; }
+.vert .bars { display: flex; gap: 3px; }
+.vert .bars i { flex: 1; height: 2px; background: rgba(255,255,255,.4); border-radius: 2px; }
+.vert .bars i.done { background: #fff; }
+.vert .who { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+.vert .who .pv-av { width: 26px; height: 26px; font-size: 10px; }
+.vert .cap { position: absolute; inset: auto 46px 14px 12px; font-size: 12.5px; line-height: 1.4; white-space: pre-wrap; text-shadow: 0 1px 3px rgba(0,0,0,.6); max-height: 40%; overflow: hidden; }
+.vert .rail { position: absolute; right: 10px; bottom: 16px; display: flex; flex-direction: column; gap: 14px; align-items: center; font-size: 10.5px; }
+.vert .rail svg { width: 22px; height: 22px; }
+.count-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); }
+.meter { height: 4px; border-radius: 4px; background: var(--line); overflow: hidden; flex: 1; max-width: 160px; }
+.meter i { display: block; height: 100%; background: var(--accent); }
+.meter.over i { background: var(--bad); }
+
+/* team activity */
+.react-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.react { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 20px; padding: 5px 11px; background: var(--surface); font-size: 13px; }
+.react.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.react svg { width: 14px; height: 14px; }
+.comments { display: flex; flex-direction: column; gap: 12px; }
+.comment { display: flex; gap: 10px; }
+.comment .body { min-width: 0; }
+.comment .meta { font-size: 12px; color: var(--muted); }
+.comment .meta b { color: var(--fg); font-weight: 600; margin-right: 6px; }
+.comment p { margin: 2px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.mention { color: var(--accent); font-weight: 500; }
+.log { display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; color: var(--muted); }
+.log div { display: flex; gap: 8px; }
+.log time { font-family: var(--font-mono); font-size: 11px; color: var(--faint); white-space: nowrap; min-width: 92px; }
+.approver { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+.approver .grow { flex: 1; }
+.result { display: flex; align-items: center; gap: 8px; font-size: 12.5px; padding: 6px 0; border-top: 1px solid var(--line); }
+.result:first-child { border-top: 0; }
+
+/* ---------- approvals / inbox ---------- */
+.stack { display: flex; flex-direction: column; gap: 10px; }
+.item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 14px 16px; align-items: center; }
+.item + .item { border-top: 1px solid var(--line); }
+.item-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; cursor: pointer; }
+.item-main .snip { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.section-title { display: flex; align-items: baseline; gap: 8px; }
+.notif { display: flex; gap: 12px; padding: 12px 16px; align-items: flex-start; cursor: pointer; }
+.notif + .notif { border-top: 1px solid var(--line); }
+.notif.unread { background: color-mix(in srgb, var(--accent-soft) 55%, transparent); }
+.notif .when { margin-left: auto; color: var(--faint); font: 11px/1.4 var(--font-mono); white-space: nowrap; }
+
+/* ---------- analytics ---------- */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+.kpi { padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+.kpi b { font: 500 26px/1.1 var(--font-display); font-variant-numeric: tabular-nums; }
+.kpi .delta { font-size: 12px; color: var(--muted); }
+.grid-2 { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 12px; }
+.chart svg { width: 100%; height: auto; display: block; }
+.chart text { fill: var(--faint); font: 10.5px var(--font-mono); }
+.bars { display: flex; flex-direction: column; gap: 10px; }
+.bar-row { display: grid; grid-template-columns: 96px minmax(0, 1fr) 64px; gap: 10px; align-items: center; font-size: 13px; }
+.bar-row .track { height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+.bar-row .track i { display: block; height: 100%; border-radius: 4px; }
+.bar-row .v { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+.note { font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+.note svg { width: 13px; height: 13px; }
+.heat { display: grid; grid-template-columns: 34px repeat(7, minmax(0, 1fr)); gap: 3px; font: 10px var(--font-mono); color: var(--faint); }
+.heat i { aspect-ratio: 1.6; border-radius: 3px; background: var(--accent); }
+
+/* ---------- profile preview ---------- */
+.phone { width: 390px; max-width: 100%; margin: 0 auto; background: var(--surface); border: 1px solid var(--line); border-radius: 28px; padding: 18px 0 0; box-shadow: var(--shadow); overflow: hidden; }
+.prof { display: flex; flex-direction: column; gap: 10px; padding: 0 16px 12px; }
+.prof-top { display: flex; align-items: center; gap: 18px; }
+.prof-top .pv-av { width: 76px; height: 76px; font-size: 24px; box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px #d62976; }
+.prof-stats { display: flex; flex: 1; justify-content: space-around; text-align: center; }
+.prof-stats b { display: block; font-size: 16px; font-variant-numeric: tabular-nums; }
+.prof-stats span { font-size: 12px; color: var(--muted); }
+.prof-bio { font-size: 13px; white-space: pre-wrap; }
+.rings { display: flex; gap: 12px; padding: 4px 16px 12px; overflow-x: auto; }
+.ring { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; color: var(--muted); border: 0; background: none; padding: 0; width: 64px; }
+.ring > span:first-child { width: 60px; height: 60px; border-radius: 50%; padding: 3px; background: conic-gradient(#f9ce34, #ee2a7b, #6228d7, #f9ce34); display: block; }
+.ring.seen > span:first-child { background: var(--line-strong); }
+.ring .in { width: 100%; height: 100%; border-radius: 50%; overflow: hidden; border: 2px solid var(--surface); display: block; }
+.ring .in img { width: 100%; height: 100%; object-fit: cover; }
+.ring em { font-style: normal; max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gtabs { display: flex; border-top: 1px solid var(--line); }
+.gtabs button { flex: 1; border: 0; background: none; padding: 10px; color: var(--faint); border-top: 1.5px solid transparent; margin-top: -1px; display: grid; place-items: center; }
+.gtabs button.on { color: var(--fg); border-top-color: var(--fg); }
+.gtabs svg { width: 18px; height: 18px; }
+.ggrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
+.tile { aspect-ratio: 1 / 1; position: relative; overflow: hidden; background: var(--surface-2); cursor: pointer; border: 0; padding: 0; }
+.ggrid.tall .tile { aspect-ratio: 9 / 16; }
+.tile img, .tile video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tile .badge { position: absolute; top: 5px; left: 5px; font: 500 9px/1 var(--font-mono); letter-spacing: .05em; text-transform: uppercase; background: rgba(0,0,0,.6); color: #fff; padding: 3px 5px; border-radius: 4px; }
+.tile.upcoming::after { content: ""; position: absolute; inset: 0; box-shadow: inset 0 0 0 2px var(--accent); pointer-events: none; }
+.tile.drop::after { content: ""; position: absolute; inset: 0; background: rgba(47,69,216,.35); }
+.tile.draft-t { opacity: .55; }
+.feed { display: flex; flex-direction: column; gap: 0; }
+.feed .pv { border-radius: 0; border-left: 0; border-right: 0; border-bottom: 0; max-width: none; }
+.prof-layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 24px; align-items: start; }
+
+/* ---------- channels ---------- */
+.ch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+.ch-card { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.ch-card .top { display: flex; align-items: center; gap: 10px; }
+.ch-card .top .grow { flex: 1; min-width: 0; }
+.ch-card .caps { display: flex; gap: 6px; flex-wrap: wrap; }
+.switch { position: relative; width: 34px; height: 20px; border-radius: 20px; background: var(--line-strong); border: 0; padding: 0; flex: none; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.switch.on { background: var(--ok); }
+.switch.on::after { transform: translateX(14px); }
+
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 13px; z-index: 80; box-shadow: var(--shadow); max-width: calc(100% - 32px); }
+
+@media (max-width: 1000px) {
+  .grid-2, .prof-layout { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 820px) {
+  .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .side { flex-direction: row; align-items: center; gap: 10px; padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); border-right: 0; border-bottom: 1px solid var(--line); overflow-x: auto; overflow-y: hidden; }
+  .brand { padding: 0; }
+  .nav-group { flex-direction: row; }
+  .nav-group .eyebrow { display: none; }
+  .nav { width: auto; white-space: nowrap; }
+  .whoami { margin: 0; padding: 0; border: 0; flex-direction: row; align-items: center; }
+  .whoami .eyebrow { display: none; }
+  .whoami select { width: auto; }
+  .page { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .overlay { padding: 0; }
+  .sheet { border-radius: 0; max-height: 100%; height: 100%; }
+  .sheet-body { grid-template-columns: minmax(0, 1fr); overflow-y: auto; }
+  .sheet-body > div { overflow: visible; }
+  .sheet-body > div + div { border-left: 0; border-top: 1px solid var(--line); }
+  .two { grid-template-columns: minmax(0, 1fr); }
+  .item { grid-template-columns: minmax(0, 1fr); }
+  .bar-row { grid-template-columns: 76px minmax(0, 1fr) 54px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="app" id="app"></div>
+<div id="modal"></div>
+<input type="file" id="file-in" accept="image/*,video/*" multiple hidden>
+
+<script>
+/* ============================================================
+   Postboard — a small social scheduling tool.
+   All state lives in localStorage. Platform adapters are in
+   PUBLISHERS; Discord sends for real through a webhook, the
+   others simulate a send until API credentials are wired up.
+   ============================================================ */
+
+const PLATFORMS = {
+  instagram: { name: 'Instagram', short: 'IG', color: '#d62976', limit: 2200, formats: ['post', 'reel', 'story'], needsMedia: true },
+  linkedin:  { name: 'LinkedIn',  short: 'in', color: '#0a66c2', limit: 3000, formats: ['post'] },
+  x:         { name: 'X',         short: 'X',  color: '#14171a', limit: 280,  formats: ['post'], weighted: true },
+  tiktok:    { name: 'TikTok',    short: 'TT', color: '#ee1d52', limit: 2200, formats: ['post', 'reel', 'story'], needsMedia: true },
+  facebook:  { name: 'Facebook',  short: 'f',  color: '#1877f2', limit: 63206, formats: ['post', 'reel', 'story'] },
+  threads:   { name: 'Threads',   short: '@',  color: '#3a3a3a', limit: 500,  formats: ['post'] },
+  discord:   { name: 'Discord',   short: 'DC', color: '#5865f2', limit: 2000, formats: ['post'], markdown: true },
+  youtube:   { name: 'YouTube',   short: 'YT', color: '#e62117', limit: 5000, formats: ['post', 'reel'], titleLimit: 100 },
+};
+const PF_IDS = Object.keys(PLATFORMS);
+const FORMATS = { post: 'Feed post', reel: 'Reel / Short', story: 'Story' };
+const STATUS = { draft: 'Draft', in_review: 'In review', changes: 'Changes requested', approved: 'Approved', scheduled: 'Scheduled', publishing: 'Sending', published: 'Published', failed: 'Failed' };
+const REACH = { instagram: 1.2, linkedin: 0.7, x: 0.9, tiktok: 2.4, facebook: 0.8, threads: 0.6, discord: 0.25, youtube: 1.4 };
+
+const ICON = {
+  cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
+  list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></svg>',
+  inbox: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3.5 13.5 6 5h12l2.5 8.5V19H3.5z"/><path d="M3.5 13.5h5l1 2.5h5l1-2.5h5"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="m8.5 12.2 2.4 2.4 4.8-5"/></svg>',
+  chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></svg>',
+  grid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9.3 4v16M14.7 4v16M4 9.3h16M4 14.7h16"/></svg>',
+  plug: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v5M15 3v5M6.5 8h11v3a5.5 5.5 0 0 1-11 0zM12 16.5V21"/></svg>',
+  cog: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  left: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg>',
+  right: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>',
+  x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
+  heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20z"/></svg>',
+  heartFill: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20z"/></svg>',
+  chat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4.5 18.5 5.8 15A7.5 7.5 0 1 1 9 18z"/></svg>',
+  repost: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3.5 20 6.5l-3 3"/><path d="M4 11.5v-1a4 4 0 0 1 4-4h12M7 20.5l-3-3 3-3"/><path d="M20 12.5v1a4 4 0 0 1-4 4H4"/></svg>',
+  send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M21 3 10 14M21 3l-7 18-4-7-7-4z"/></svg>',
+  warn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4 2.8 19.5h18.4z"/><path d="M12 10v4M12 17h.01"/></svg>',
+  info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>',
+  bold: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7a3.5 3.5 0 0 1 0 7H7z"/></svg>',
+  italic: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 5h8M6 19h8M14.5 5l-5 14"/></svg>',
+  hash: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 9h14M5 15h14M10 4 8 20M16 4l-2 16"/></svg>',
+  at: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3.5"/><path d="M15.5 12v1.5a2.5 2.5 0 0 0 5 0V12a8.5 8.5 0 1 0-3.3 6.7"/></svg>',
+  copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/></svg>',
+  play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>',
+  reels: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M3.5 8.5h17M8 3.5l3 5M13.5 3.5l3 5M10.5 12v5l4-2.5z"/></svg>',
+  feed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3.5" width="16" height="7" rx="1.5"/><rect x="4" y="13.5" width="16" height="7" rx="1.5"/></svg>',
+  story: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="3 2.2"><circle cx="12" cy="12" r="8.5"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4.5 7h15M10 11v6M14 11v6M6.5 7l1 12.5h9l1-12.5M9.5 7V4.5h5V7"/></svg>',
+};
+
+/* ---------- small helpers ---------- */
+const $ = s => document.querySelector(s);
+const h = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = () => Math.random().toString(36).slice(2, 10);
+const clone = o => JSON.parse(JSON.stringify(o));
+const fmtN = n => n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e4 ? Math.round(n / 1e3) + 'K' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : String(Math.round(n));
+const startOfDay = t => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
+const addDays = (t, n) => { const d = new Date(t); d.setDate(d.getDate() + n); return d.getTime(); };
+const startOfWeek = t => { const d = new Date(startOfDay(t)); d.setDate(d.getDate() - d.getDay()); return d.getTime(); };
+const dayKey = t => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const keyToTs = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d).getTime(); };
+const fmtTime = t => new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).replace(' ', '');
+const fmtDate = t => new Date(t).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+const fmtWhen = t => `${fmtDate(t)}, ${fmtTime(t)}`;
+const toLocalInput = t => { if (!t) return ''; const d = new Date(t); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
+const ago = t => { const s = (Date.now() - t) / 1000; if (s < 60) return 'just now'; if (s < 3600) return Math.floor(s / 60) + 'm ago'; if (s < 86400) return Math.floor(s / 3600) + 'h ago'; return Math.floor(s / 86400) + 'd ago'; };
+function rng(seedStr) { let a = 0; for (const c of seedStr) a = (a * 31 + c.charCodeAt(0)) | 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+/* ---------- text formatting: **bold**, *italic*, ***both*** ---------- */
+function segments(src) {
+  const out = []; const re = /\*\*\*([^*\n]+?)\*\*\*|\*\*([^*\n]+?)\*\*|\*([^*\n]+?)\*|(?<![\w])_([^_\n]+?)_(?![\w])/g;
+  let last = 0, m;
+  while ((m = re.exec(src))) {
+    if (m.index > last) out.push({ t: src.slice(last, m.index) });
+    if (m[1] != null) out.push({ t: m[1], b: 1, i: 1 });
+    else if (m[2] != null) out.push({ t: m[2], b: 1 });
+    else out.push({ t: m[3] ?? m[4], i: 1 });
+    last = re.lastIndex;
+  }
+  if (last < src.length) out.push({ t: src.slice(last) });
+  return out;
+}
+function styleChar(c, b, i) {
+  const cp = c.codePointAt(0); const up = cp >= 65 && cp <= 90, lo = cp >= 97 && cp <= 122, dg = cp >= 48 && cp <= 57;
+  const base = b && i ? [0x1D63C, 0x1D656, 0x1D7EC] : b ? [0x1D5D4, 0x1D5EE, 0x1D7EC] : [0x1D608, 0x1D622, 0];
+  if (up) return String.fromCodePoint(base[0] + cp - 65);
+  if (lo) return String.fromCodePoint(base[1] + cp - 97);
+  if (dg && base[2]) return String.fromCodePoint(base[2] + cp - 48);
+  return c;
+}
+// Most networks have no rich text, so bold/italic go out as Unicode math letters. Discord keeps markdown.
+function textFor(body, ch) {
+  if (PLATFORMS[ch]?.markdown) return body;
+  return segments(body).map(s => (s.b || s.i) ? [...s.t].map(c => styleChar(c, s.b, s.i)).join('') : s.t).join('');
+}
+function richHTML(body) {
+  return segments(body).map(s => {
+    let t = h(s.t).replace(/(^|[\s(])([#@][\w.]+)/g, '$1<span class="ht">$2</span>');
+    if (s.b && s.i) return `<strong><em>${t}</em></strong>`;
+    if (s.b) return `<strong>${t}</strong>`;
+    if (s.i) return `<em>${t}</em>`;
+    return t;
+  }).join('');
+}
+function countFor(text, ch) {
+  if (!PLATFORMS[ch].weighted) return [...text].length;
+  let n = 0; let t = text;
+  (text.match(/https?:\/\/\S+/g) || []).forEach(u => { t = t.replace(u, ''); n += 23; });
+  for (const c of t) { const cp = c.codePointAt(0); n += (cp <= 4351 || (cp >= 8192 && cp <= 8205) || (cp >= 8208 && cp <= 8223) || (cp >= 8242 && cp <= 8247)) ? 1 : 2; }
+  return n;
+}
+
+/* ---------- state ---------- */
+const STORE_KEY = 'postboard.v1';
+let S;
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); }
+  catch (e) { toast('Browser storage is full. Remove some uploaded media to keep changes.'); }
+}
+function load() { try { const raw = localStorage.getItem(STORE_KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; } }
+
+function seed() {
+  const t0 = startOfDay(Date.now());
+  const at = (d, hh, mm = 0) => { const x = new Date(addDays(t0, d)); x.setHours(hh, mm, 0, 0); return x.getTime(); };
+  const members = [
+    { id: 'u1', name: 'Derrick', role: 'Admin', color: '#2f45d8' },
+    { id: 'u2', name: 'Maya Chen', role: 'Brand lead', color: '#c2410c' },
+    { id: 'u3', name: 'Jordan Ellis', role: 'Social manager', color: '#18804f' },
+    { id: 'u4', name: 'Priya Nair', role: 'Designer', color: '#8b3fd1' },
+  ];
+  const acct = (handle, name, followers, extra = {}) => ({ connected: true, handle, name, followers, ...extra });
+  const accounts = {
+    instagram: acct('larkspurcoffee', 'Larkspur Coffee', 18400, { bio: 'Small-batch roaster · Portland, OR\nOpen 7–4 daily ☕ Roasting Tue + Fri\nlarkspur.coffee' }),
+    linkedin: acct('larkspur-coffee-co', 'Larkspur Coffee Co.', 3200),
+    x: acct('larkspurcoffee', 'Larkspur Coffee', 7100),
+    tiktok: acct('larkspurcoffee', 'Larkspur Coffee', 26900),
+    facebook: acct('LarkspurCoffeePDX', 'Larkspur Coffee', 9800),
+    threads: acct('larkspurcoffee', 'Larkspur Coffee', 4100),
+    discord: { connected: false, handle: 'Larkspur Regulars', name: 'Larkspur Bot', followers: 860, webhook: '' },
+    youtube: acct('@larkspurcoffee', 'Larkspur Coffee', 5300),
+  };
+  const labels = [
+    { id: 'l1', name: 'Launch', h: 22 }, { id: 'l2', name: 'Founder', h: 262 }, { id: 'l3', name: 'Case study', h: 140 },
+    { id: 'l4', name: 'Community', h: 200 }, { id: 'l5', name: 'Promo', h: 340 }, { id: 'l6', name: 'Education', h: 48 },
+  ];
+  const campaigns = [
+    { id: 'c1', name: 'Fall menu launch', start: dayKey(at(-9, 0)), end: dayKey(at(-5, 0)), h: 28 },
+    { id: 'c2', name: 'Roaster open house', start: dayKey(at(1, 0)), end: dayKey(at(4, 0)), h: 230 },
+    { id: 'c3', name: 'Holiday blend', start: dayKey(at(6, 0)), end: dayKey(at(12, 0)), h: 350 },
+  ];
+  const P = (o) => ({
+    id: uid(), title: '', body: '', channels: [], format: 'post', scheduledAt: null, status: 'draft', labels: [], tagged: '',
+    media: [], author: 'u3', approval: { required: true, approvers: ['u2'], decisions: {} },
+    likes: [], reposts: [], comments: [], log: [], results: null, publishedAt: null, createdAt: Date.now() - 864e5 * 12, ...o,
+  });
+  const art = (hue, label) => [{ kind: 'art', h: hue, label }];
+  const pub = (o) => { const p = P({ status: 'published', ...o }); p.publishedAt = p.scheduledAt; p.approval.decisions = { u2: 'approved' }; p.results = Object.fromEntries(p.channels.map(c => [c, { ok: true, live: false, msg: 'Simulated send' }])); p.log = [{ at: p.scheduledAt - 864e5, who: p.author, text: 'requested approval' }, { at: p.scheduledAt - 6e7, who: 'u2', text: 'approved' }, { at: p.scheduledAt, who: 'system', text: 'published to ' + p.channels.length + ' channels' }]; return p; };
+  const posts = [
+    pub({ title: 'New mugs in the shop', body: 'Stoneware mugs from **Hollow Clay Studio** just landed. Each one is thrown by hand, so no two match.\n\nShop link in bio. #handmade #coffeegear', channels: ['instagram', 'facebook'], scheduledAt: at(-13, 11), labels: ['l5'], media: art(190, 'Hollow Clay mugs'), likes: ['u2', 'u4'] }),
+    pub({ title: 'Sunrise at the roastery', body: 'First batch of the day, 6:12am. *This is the quiet part nobody sees.*', channels: ['instagram', 'threads', 'x'], scheduledAt: at(-11, 7, 30), labels: ['l4'], media: art(36, 'Sunrise roast'), author: 'u4' }),
+    pub({ title: 'Fall menu is here', body: 'Our **fall menu** lands today.\n\n*Maple cardamom latte* is back, plus two new pastries from Bramble Bakery.\n\nWhich one are you trying first? #fallmenu #pdxcoffee', channels: ['instagram', 'facebook', 'threads', 'x'], scheduledAt: at(-9, 9, 30), labels: ['l1'], media: art(24, 'Fall menu'), likes: ['u1', 'u2', 'u4'], reposts: ['u1', 'u2'], comments: [{ id: uid(), who: 'u2', text: 'Love the photo crop on this one.', at: at(-10, 15) }] }),
+    pub({ title: 'Maple cardamom latte', body: 'How we build the **maple cardamom latte**, start to finish. 30 seconds, no cuts. #latteart', channels: ['instagram', 'tiktok', 'youtube', 'facebook'], format: 'reel', scheduledAt: at(-8, 12), labels: ['l1', 'l6'], media: art(32, 'Latte reel'), likes: ['u1', 'u2'], reposts: ['u4'] }),
+    pub({ title: 'Behind the roast: Huila, Colombia', body: 'Our new single origin comes from the **Rojas family farm** in Huila. We paid $4.10/lb, 82% above the C price.\n\nHere is what that premium funds, and why we publish the number every time.', channels: ['linkedin', 'facebook', 'instagram'], scheduledAt: at(-7, 8), labels: ['l4'], media: art(110, 'Huila origin'), author: 'u2', likes: ['u1', 'u3'], comments: [{ id: uid(), who: 'u1', text: '@Jordan can we pin this on LinkedIn?', at: at(-7, 10) }, { id: uid(), who: 'u3', text: 'Done, pinned for two weeks.', at: at(-7, 11) }] }),
+    pub({ title: 'Last call: pumpkin bread', body: 'Last trays of pumpkin bread today. *Get here before noon.*', channels: ['instagram', 'facebook'], format: 'story', scheduledAt: at(-4, 8), labels: ['l5'], media: art(18, 'Last call 🎃') }),
+    pub({ title: 'Regulars night recap', body: '**Regulars night recap**\nThanks to the 40 of you who came out. Next one is on the 3rd Thursday. Bring a mug, get a free refill.', channels: ['discord', 'threads'], scheduledAt: at(-2, 19), labels: ['l4'], author: 'u3' }),
+    pub({ title: 'Founder note: pricing', body: 'We raised our bag price by $1 this month. **All of it goes to farm partners.** A short note on why, and what changes for you: nothing else.', channels: ['linkedin', 'x'], scheduledAt: at(-1, 9), labels: ['l2'], author: 'u1', likes: ['u2', 'u3', 'u4'], reposts: ['u2', 'u3'] }),
+    P({ title: 'Weekend pour-over class', body: 'Two seats left for **Saturday pour-over basics**. 90 minutes, all gear provided, you leave with a bag of the Huila.\n\nBook at larkspur.coffee/classes', channels: ['instagram', 'facebook', 'threads'], scheduledAt: Date.now() + 95 * 6e4, status: 'scheduled', labels: ['l6', 'l5'], media: art(60, 'Pour-over class'), approval: { required: true, approvers: ['u2'], decisions: { u2: 'approved' } }, likes: ['u2'] }),
+    P({ title: 'Open house countdown', body: 'Open house in 3 days. **Free cupping at 10, 12 and 2.**', channels: ['instagram', 'tiktok'], format: 'story', scheduledAt: at(1, 11), status: 'in_review', labels: ['l5'], media: art(230, '3 days'), author: 'u4', approval: { required: true, approvers: ['u2'], decisions: {} } }),
+    P({ title: 'Roaster open house: this Saturday', body: 'Come see the **Loring S15** in action. Tours every hour from 10 to 3, free cupping, and 20% off beans all day.\n\n*Kids and dogs welcome.* #openhouse #pdx', channels: ['instagram', 'facebook', 'linkedin', 'threads', 'x'], scheduledAt: at(2, 9, 30), status: 'scheduled', labels: ['l5', 'l4'], media: art(220, 'Open house'), approval: { required: true, approvers: ['u2'], decisions: { u2: 'approved' } }, tagged: '@loringroasters', likes: ['u1', 'u4'] }),
+    P({ title: 'Cupping 101 with Jordan', body: 'What does "bright" actually mean? Jordan breaks down a **cupping form** in under a minute. #coffeeeducation', channels: ['tiktok', 'instagram', 'youtube'], format: 'reel', scheduledAt: at(3, 15), status: 'in_review', labels: ['l6'], media: art(48, 'Cupping 101'), approval: { required: true, approvers: ['u2', 'u1'], decisions: { u2: 'approved' } }, comments: [{ id: uid(), who: 'u2', text: 'Approved from my side. @Derrick can you check the captions?', at: Date.now() - 3 * 36e5 }] }),
+    P({ title: 'Customer story: Night Shift Nurses', body: 'Every Tuesday at 6am we drop two carafes at **St. Vincent\'s night shift**. Charge nurse Alma told us what that hour means to her team.', channels: ['linkedin', 'facebook'], scheduledAt: at(4, 8, 30), status: 'changes', labels: ['l3'], author: 'u2', approval: { required: true, approvers: ['u1'], decisions: { u1: 'changes' } }, comments: [{ id: uid(), who: 'u1', text: 'Need Alma\'s written OK on the quote before this goes out.', at: Date.now() - 20 * 36e5 }] }),
+    P({ title: 'Holiday blend teaser', body: 'Something *dark, a little spicy*, and only around until January.', channels: ['instagram', 'tiktok', 'x'], scheduledAt: at(6, 10), status: 'draft', labels: ['l1'], media: art(350, 'Holiday blend') , author: 'u4' }),
+    P({ title: 'Discord AMA with our head roaster', body: '**AMA tonight, 7pm** in #roastery-chat.\nAsk Sam anything about roast curves, green sourcing, or why we stopped doing dark roasts.', channels: ['discord', 'x', 'threads'], scheduledAt: at(9, 12), status: 'scheduled', labels: ['l4'], approval: { required: true, approvers: ['u2'], decisions: { u2: 'approved' } } }),
+  ];
+  const notifications = [
+    { id: uid(), at: Date.now() - 3 * 36e5, to: 'u1', text: 'Maya Chen mentioned you on “Cupping 101 with Jordan”', postId: posts[11].id, read: false },
+    { id: uid(), at: Date.now() - 4 * 36e5, to: 'u1', text: 'Jordan Ellis asked you to approve “Cupping 101 with Jordan”', postId: posts[11].id, read: false },
+    { id: uid(), at: Date.now() - 30 * 36e5, to: 'all', text: '“Founder note: pricing” was published to LinkedIn and X', postId: posts[7].id, read: true },
+  ];
+  return { v: 1, me: 'u1', members, accounts, labels, campaigns, posts, notifications, settings: { requireApproval: true, defaultApprovers: ['u2'] } };
+}
+
+S = load() || seed();
+const UI = { view: 'calendar', layout: 'calendar', calMode: '2w', cursor: Date.now(), filters: { ch: '', label: '', status: '' }, draft: null, pvTab: null, sideTab: 'preview', profPf: 'instagram', profTab: 'grid', storyIdx: 0, range: 30, anPf: '' };
+try { const v = sessionStorage.getItem('postboard.view'); if (v) UI.view = v; } catch (e) {}
+
+/* ---------- derived ---------- */
+const member = id => S.members.find(m => m.id === id) || { name: id === 'system' ? 'Postboard' : 'Someone', color: '#888' };
+const label = id => S.labels.find(l => l.id === id);
+const post = id => S.posts.find(p => p.id === id);
+const initials = n => n.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+const avatar = (id, size) => { const m = member(id); return `<span class="avatar" title="${h(m.name)}" style="background:${m.color}${size ? `;width:${size}px;height:${size}px` : ''}">${h(initials(m.name))}</span>`; };
+const pfBadge = (ch, lg) => { const p = PLATFORMS[ch]; return `<span class="pf${lg ? ' lg' : ''}" title="${p.name}" style="background:${p.color}">${p.short}</span>`; };
+const pfBadges = chs => `<span class="pfs">${chs.map(c => pfBadge(c)).join('')}</span>`;
+const tagHTML = id => { const l = label(id); return l ? `<span class="tag" style="--h:${l.h}">${h(l.name)}</span>` : ''; };
+const pill = st => `<span class="pill ${st}">${STATUS[st] || st}</span>`;
+function needsMyApproval(p) { return p.status === 'in_review' && p.approval.approvers.includes(S.me) && !p.approval.decisions[S.me]; }
+function approvalComplete(p) { return !p.approval.required || (p.approval.approvers.length > 0 && p.approval.approvers.every(a => p.approval.decisions[a] === 'approved')); }
+function unreadCount() { return S.notifications.filter(n => !n.read && (n.to === S.me || n.to === 'all')).length; }
+function notify(to, text, postId) { S.notifications.unshift({ id: uid(), at: Date.now(), to, text, postId, read: false }); }
+function addLog(p, text, who = S.me) { p.log.push({ at: Date.now(), who, text }); }
+
+/* ---------- metrics (sample, deterministic) ---------- */
+function metricsFor(p, ch) {
+  if (p.status !== 'published' || !p.results?.[ch]?.ok) return null;
+  const r = rng(p.id + ch); const acct = S.accounts[ch];
+  const hours = Math.max(0, (Date.now() - p.publishedAt) / 36e5);
+  const grow = 1 - Math.exp(-hours / 20);
+  const fmtBoost = p.format === 'reel' ? 2.2 : p.format === 'story' ? 0.6 : 1;
+  const full = (acct?.followers || 1000) * REACH[ch] * fmtBoost * (0.35 + r() * 0.6) * (1 + p.reposts.length * 0.08);
+  const impressions = Math.round(full * grow);
+  const rate = 0.025 + r() * 0.05;
+  const eng = Math.round(impressions * rate);
+  const likes = Math.round(eng * 0.72), comments = Math.round(eng * 0.1), shares = Math.round(eng * 0.12), saves = eng - likes - comments - shares;
+  return { impressions, eng, likes, comments, shares, saves, full, r };
+}
+function postTotals(p) {
+  const t = { impressions: 0, eng: 0, likes: 0, comments: 0, shares: 0 };
+  p.channels.forEach(c => { const m = metricsFor(p, c); if (m) for (const k in t) t[k] += m[k]; });
+  return t;
+}
+
+/* ============================================================
+   RENDER: shell
+   ============================================================ */
+function render() {
+  try { sessionStorage.setItem('postboard.view', UI.view); } catch (e) {}
+  const pend = S.posts.filter(needsMyApproval).length; const un = unreadCount();
+  const nav = (id, icon, text, count) => `<button class="nav${UI.view === id ? ' on' : ''}" data-act="view" data-v="${id}">${ICON[icon]}<span>${text}</span>${count ? `<span class="count">${count}</span>` : ''}</button>`;
+  $('#app').innerHTML = `
+    <aside class="side">
+      <div class="brand"><span class="wordmark"><i></i>Postboard</span></div>
+      <div class="nav-group"><span class="eyebrow">Plan</span>
+        ${nav('calendar', 'cal', 'Calendar')}${nav('approvals', 'check', 'Approvals', pend)}${nav('inbox', 'inbox', 'Inbox', un)}
+      </div>
+      <div class="nav-group"><span class="eyebrow">Preview</span>${nav('profile', 'grid', 'Grid & profile')}</div>
+      <div class="nav-group"><span class="eyebrow">Measure</span>${nav('analytics', 'chart', 'Analytics')}</div>
+      <div class="nav-group"><span class="eyebrow">Settings</span>${nav('channels', 'plug', 'Channels')}${nav('workspace', 'cog', 'Workspace')}</div>
+      <div class="whoami"><span class="eyebrow">Acting as</span>
+        <select id="me-select" aria-label="Acting as">${S.members.map(m => `<option value="${m.id}"${m.id === S.me ? ' selected' : ''}>${h(m.name)} · ${h(m.role)}</option>`).join('')}</select>
+      </div>
+    </aside>
+    <main class="main" id="main">${VIEWS[UI.view]()}</main>`;
+}
+const VIEWS = { calendar: viewCalendar, approvals: viewApprovals, inbox: viewInbox, analytics: viewAnalytics, profile: viewProfile, channels: viewChannels, workspace: viewWorkspace };
+
+/* ---------- calendar ---------- */
+function visiblePosts() {
+  const f = UI.filters;
+  return S.posts.filter(p => p.scheduledAt && (!f.ch || p.channels.includes(f.ch)) && (!f.label || p.labels.includes(f.label)) && (!f.status || p.status === f.status));
+}
+function calRange() {
+  if (UI.calMode === '1m') {
+    const d = new Date(UI.cursor); const first = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+    const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getTime();
+    const start = startOfWeek(first); const end = addDays(startOfWeek(last), 7);
+    return { start, weeks: Math.round((end - start) / 864e5 / 7), month: d.getMonth() };
+  }
+  return { start: startOfWeek(UI.cursor), weeks: UI.calMode === '1w' ? 1 : 2, month: null };
+}
+function viewCalendar() {
+  const { start, weeks, month } = calRange();
+  const mid = new Date(UI.calMode === '1m' ? UI.cursor : addDays(start, 3));
+  const today = dayKey(Date.now());
+  const posts = visiblePosts();
+  const byDay = {};
+  posts.forEach(p => (byDay[dayKey(p.scheduledAt)] ||= []).push(p));
+  Object.values(byDay).forEach(a => a.sort((x, y) => x.scheduledAt - y.scheduledAt));
+  const filters = `
+    <div class="filters">
+      <select id="f-ch" aria-label="Channel"><option value="">All channels</option>${PF_IDS.map(c => `<option value="${c}"${UI.filters.ch === c ? ' selected' : ''}>${PLATFORMS[c].name}</option>`).join('')}</select>
+      <select id="f-label" aria-label="Label"><option value="">All labels</option>${S.labels.map(l => `<option value="${l.id}"${UI.filters.label === l.id ? ' selected' : ''}>${h(l.name)}</option>`).join('')}</select>
+      <select id="f-status" aria-label="Status"><option value="">Any status</option>${Object.entries(STATUS).map(([k, v]) => `<option value="${k}"${UI.filters.status === k ? ' selected' : ''}>${v}</option>`).join('')}</select>
+    </div>`;
+  let body;
+  if (UI.layout === 'list') {
+    const rows = posts.filter(p => p.scheduledAt >= start && p.scheduledAt < addDays(start, weeks * 7)).sort((a, b) => a.scheduledAt - b.scheduledAt);
+    body = `<div class="panel table-wrap"><table><thead><tr><th>When</th><th>Post</th><th>Channels</th><th>Format</th><th>Status</th><th>Team</th></tr></thead><tbody>
+      ${rows.map(p => `<tr class="click" data-act="open" data-id="${p.id}"><td class="mono num">${fmtWhen(p.scheduledAt)}</td><td><div class="row" style="gap:6px"><b style="font-weight:500">${h(p.title || 'Untitled')}</b>${p.labels.map(tagHTML).join('')}</div></td><td>${pfBadges(p.channels)}</td><td><span class="fmt">${FORMATS[p.format]}</span></td><td>${pill(p.status)}</td><td>${socHTML(p)}</td></tr>`).join('') || `<tr><td colspan="6" class="empty">Nothing scheduled in this range.</td></tr>`}
+    </tbody></table></div>`;
+  } else {
+    let html = '';
+    for (let w = 0; w < weeks; w++) {
+      const ws = addDays(start, w * 7); const days = [...Array(7)].map((_, i) => addDays(ws, i));
+      const keys = days.map(dayKey);
+      const camps = S.campaigns.filter(c => c.end >= keys[0] && c.start <= keys[6]);
+      let row = '';
+      days.forEach((d, i) => {
+        const dd = new Date(d); const k = keys[i];
+        const label = (w === 0 || UI.calMode === '1m') ? `<span class="eyebrow">${dd.toLocaleDateString([], { weekday: 'short' })}</span>` : '';
+        const num = dd.getDate() === 1 || (w === 0 && i === 0) ? dd.toLocaleDateString([], { month: 'short', day: '2-digit' }).toUpperCase() : String(dd.getDate()).padStart(2, '0');
+        row += `<div class="dh${k === today ? ' today' : ''}${month != null && dd.getMonth() !== month ? ' out' : ''}" style="grid-row:1;grid-column:${i + 1}">${label}<span class="num"><span>${num}</span></span></div>`;
+      });
+      camps.forEach((c, ci) => {
+        const s = Math.max(0, keys.findIndex(k => k >= c.start)); let e = keys.findIndex(k => k > c.end); if (e === -1) e = 7;
+        row += `<div class="banner" style="grid-row:${2 + ci};grid-column:${s + 1}/${e + 1};--h:${c.h}" title="${h(c.name)}">${h(c.name)}</div>`;
+      });
+      days.forEach((d, i) => {
+        const k = keys[i]; const list = byDay[k] || [];
+        row += `<div class="cell${d < startOfDay(Date.now()) ? ' past' : ''}" data-day="${k}" style="grid-row:${2 + camps.length};grid-column:${i + 1}">
+          ${list.map(cardHTML).join('')}
+          <button class="btn icon ghost add" data-act="new" data-day="${k}" aria-label="New post on ${fmtDate(d)}">${ICON.plus}</button></div>`;
+      });
+      html += `<div class="week">${row}</div>`;
+    }
+    body = `<div class="cal-scroll"><div class="cal${UI.calMode === '1m' ? ' month' : ''}">${html}</div></div>
+      <div class="legend">${['draft', 'in_review', 'changes', 'scheduled', 'published', 'failed'].map(s => `<span><i class="st-dot ${s}"></i>${STATUS[s]}</span>`).join('')}<span class="muted">Drag a card to another day to reschedule.</span></div>`;
+  }
+  return `<div class="page">
+    <div class="row spread">
+      <div class="row">
+        <div class="seg"><button class="${UI.layout === 'calendar' ? 'on' : ''}" data-act="layout" data-v="calendar" aria-label="Calendar view">${ICON.cal.replace('<svg', '<svg width="15" height="15"')}</button><button class="${UI.layout === 'list' ? 'on' : ''}" data-act="layout" data-v="list" aria-label="List view">${ICON.list.replace('<svg', '<svg width="15" height="15"')}</button></div>
+        ${filters}
+      </div>
+      <button class="btn primary" data-act="new">${ICON.plus}New post</button>
+    </div>
+    <div class="cal-head">
+      <h1><b>${mid.toLocaleDateString([], { month: 'long' })}</b> <span>${mid.getFullYear()}</span></h1>
+      <div class="row" style="gap:2px">
+        <button class="btn icon ghost" data-act="cal-step" data-v="-1" aria-label="Previous">${ICON.left}</button>
+        <button class="btn ghost" data-act="cal-today">Today</button>
+        <button class="btn icon ghost" data-act="cal-step" data-v="1" aria-label="Next">${ICON.right}</button>
+      </div>
+      <div style="margin-left:auto" class="seg">${[['1w', '1 Week'], ['2w', '2 Weeks'], ['1m', '1 Month']].map(([k, v]) => `<button class="${UI.calMode === k ? 'on' : ''}" data-act="cal-mode" data-v="${k}">${v}</button>`).join('')}</div>
+    </div>
+    ${body}
+  </div>`;
+}
+function socHTML(p) {
+  const bits = [];
+  if (p.likes.length) bits.push(`<span title="Team likes">${ICON.heart}${p.likes.length}</span>`);
+  if (p.comments.length) bits.push(`<span title="Comments">${ICON.chat}${p.comments.length}</span>`);
+  if (p.reposts.length) bits.push(`<span title="Team reposts">${ICON.repost}${p.reposts.length}</span>`);
+  return `<span class="soc">${bits.join('')}</span>`;
+}
+function cardHTML(p) {
+  const icon = p.status === 'scheduled' ? ICON.clock : p.status === 'published' ? ICON.check : '';
+  return `<div class="card ${p.status}" draggable="${p.status !== 'published'}" data-act="open" data-id="${p.id}" data-drag="${p.id}" tabindex="0" role="button">
+    <div class="card-meta">${icon || `<i class="st-dot ${p.status}"></i>`}<span class="mono">${fmtTime(p.scheduledAt).toUpperCase()}</span>${p.labels.slice(0, 2).map(tagHTML).join('')}</div>
+    <div class="card-title">${h(p.title || 'Untitled')}</div>
+    <div class="card-foot">${pfBadges(p.channels)}${p.format !== 'post' ? `<span class="fmt">${p.format}</span>` : ''}${socHTML(p)}</div>
+  </div>`;
+}
+
+/* ---------- approvals ---------- */
+function viewApprovals() {
+  const mine = S.posts.filter(needsMyApproval).sort((a, b) => a.scheduledAt - b.scheduledAt);
+  const others = S.posts.filter(p => p.status === 'in_review' && !needsMyApproval(p));
+  const changes = S.posts.filter(p => p.status === 'changes');
+  const row = (p, actions) => `<div class="item">
+    <div class="item-main" data-act="open" data-id="${p.id}">
+      <div class="row" style="gap:8px"><b style="font-weight:600">${h(p.title || 'Untitled')}</b>${p.labels.map(tagHTML).join('')}<span class="fmt">${FORMATS[p.format]}</span></div>
+      <div class="snip">${h(p.body.replace(/[*_]/g, '').replace(/\n+/g, ' '))}</div>
+      <div class="row" style="gap:10px;font-size:12px" >${pfBadges(p.channels)}<span class="muted">${p.scheduledAt ? fmtWhen(p.scheduledAt) : 'No date'}</span><span class="muted">by ${h(member(p.author).name)}</span>
+        <span class="avatars">${p.approval.approvers.map(a => avatar(a)).join('')}</span>
+        <span class="muted">${p.approval.approvers.map(a => `${member(a).name.split(' ')[0]}: ${p.approval.decisions[a] === 'approved' ? 'approved' : p.approval.decisions[a] === 'changes' ? 'changes requested' : 'waiting'}`).join(' · ')}</span></div>
+    </div>
+    <div class="row">${actions}</div></div>`;
+  const section = (title, list, actions, empty) => `<section class="stack"><div class="section-title"><h2>${title}</h2><span class="mono muted">${list.length}</span></div>
+    <div class="panel">${list.map(p => row(p, actions(p))).join('') || `<div class="empty">${empty}</div>`}</div></section>`;
+  return `<div class="page">
+    <div class="row spread"><h1>Approvals</h1>
+      <span class="note">${ICON.info}${S.settings.requireApproval ? 'Posts need approval before they can be scheduled or sent.' : 'Approval is optional in this workspace.'}</span></div>
+    ${section('Waiting on you', mine, p => `<button class="btn" data-act="decide" data-id="${p.id}" data-v="changes">Request changes</button><button class="btn ok" data-act="decide" data-id="${p.id}" data-v="approved">${ICON.check}Approve</button>`, 'Nothing needs your review right now.')}
+    ${section('Waiting on others', others, p => `<button class="btn ghost" data-act="open" data-id="${p.id}">Open</button>`, 'No other posts are in review.')}
+    ${section('Changes requested', changes, p => `<button class="btn" data-act="open" data-id="${p.id}">Edit post</button>`, 'No posts are waiting on edits.')}
+  </div>`;
+}
+
+/* ---------- inbox ---------- */
+function viewInbox() {
+  const list = S.notifications.filter(n => n.to === S.me || n.to === 'all');
+  return `<div class="page">
+    <div class="row spread"><h1>Inbox</h1><button class="btn" data-act="read-all"${list.some(n => !n.read) ? '' : ' disabled'}>Mark all read</button></div>
+    <div class="panel">${list.map(n => `<div class="notif${n.read ? '' : ' unread'}" data-act="notif" data-id="${n.id}">
+      ${post(n.postId) ? pfBadges(post(n.postId).channels.slice(0, 3)) : ''}<div>${h(n.text)}</div><span class="when">${ago(n.at)}</span></div>`).join('') || '<div class="empty">You are all caught up. Mentions, approval requests and send results show up here.</div>'}
+    </div></div>`;
+}
+
+/* ---------- analytics ---------- */
+function viewAnalytics() {
+  const now = Date.now(); const from = startOfDay(addDays(now, -UI.range + 1));
+  const prevFrom = addDays(from, -UI.range);
+  const pubs = S.posts.filter(p => p.status === 'published' && (!UI.anPf || p.channels.includes(UI.anPf)));
+  const chans = p => UI.anPf ? [UI.anPf] : p.channels;
+  const inRange = (p, a, b) => p.publishedAt >= a && p.publishedAt < b;
+  const cur = pubs.filter(p => inRange(p, from, now + 1)); const prev = pubs.filter(p => inRange(p, prevFrom, from));
+  const sum = (list) => { const t = { impressions: 0, eng: 0, shares: 0, posts: list.length, amp: 0 }; list.forEach(p => { chans(p).forEach(c => { const m = metricsFor(p, c); if (m) { t.impressions += m.impressions; t.eng += m.eng; t.shares += m.shares; } }); t.amp += p.reposts.length + p.likes.length; }); return t; };
+  const a = sum(cur), b = sum(prev);
+  const delta = (x, y) => y ? `${x >= y ? '▲' : '▼'} ${Math.abs(Math.round((x - y) / y * 100))}% vs previous ${UI.range} days` : 'No posts in the previous period';
+  // daily series: spread each post's impressions over the days after it went live
+  const days = [...Array(UI.range)].map((_, i) => addDays(from, i)); const series = days.map(() => 0);
+  cur.forEach(p => chans(p).forEach(c => { const m = metricsFor(p, c); if (!m) return; days.forEach((d, i) => { const h0 = Math.max(0, (d - p.publishedAt) / 36e5), h1 = Math.max(0, (addDays(d, 1) - p.publishedAt) / 36e5); const cap = (now - p.publishedAt) / 36e5; const g = x => 1 - Math.exp(-Math.min(x, cap) / 20); series[i] += m.full * (g(h1) - g(h0)); }); }));
+  const W = 760, H = 220, L = 44, R = 26, T = 14, B = 26;
+  const max = Math.max(10, ...series); const nice = (() => { const p = Math.pow(10, Math.floor(Math.log10(max))); return Math.ceil(max / p / (max / p > 5 ? 2 : 1)) * p * (max / p > 5 ? 2 : 1); })();
+  const x = i => L + (W - L - R) * (series.length === 1 ? 0 : i / (series.length - 1)); const y = v => T + (H - T - B) * (1 - v / nice);
+  const line = series.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join('');
+  const area = `${line}L${x(series.length - 1).toFixed(1)},${y(0)}L${x(0)},${y(0)}Z`;
+  const ticks = [0, .25, .5, .75, 1].map(f => f * nice);
+  const step = Math.ceil(series.length / 6);
+  const chart = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Daily impressions">
+    ${ticks.map(t => `<line x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)" stroke-width="1"/><text x="${L - 8}" y="${y(t) + 3.5}" text-anchor="end">${fmtN(t)}</text>`).join('')}
+    <path d="${area}" fill="var(--accent)" fill-opacity=".12"/>
+    <path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+    <circle cx="${x(series.length - 1)}" cy="${y(series[series.length - 1])}" r="4" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>
+    ${days.map((d, i) => (i % step === 0 || i === days.length - 1) && !(i !== days.length - 1 && days.length - 1 - i < step / 2) ? `<text x="${x(i)}" y="${H - 6}" text-anchor="middle">${new Date(d).toLocaleDateString([], { month: 'short', day: 'numeric' })}</text>` : '').join('')}
+  </svg>`;
+  const perPf = PF_IDS.map(c => { let imp = 0, eng = 0; cur.forEach(p => { if (UI.anPf && c !== UI.anPf) return; const m = metricsFor(p, c); if (m) { imp += m.impressions; eng += m.eng; } }); return { c, imp, eng }; }).filter(r => r.imp > 0).sort((p, q) => q.imp - p.imp);
+  const pmax = Math.max(1, ...perPf.map(r => r.imp));
+  const top = cur.map(p => { let imp = 0, eng = 0; chans(p).forEach(c => { const m = metricsFor(p, c); if (m) { imp += m.impressions; eng += m.eng; } }); return { p, imp, eng }; }).sort((p, q) => q.eng - p.eng).slice(0, 8);
+  // best time: engagement rate by weekday x daypart from published posts
+  const parts = [['Morning', 6, 11], ['Midday', 11, 15], ['Evening', 15, 22]];
+  const cells = parts.map(([n, a1, a2]) => [...Array(7)].map((_, wd) => { const ps = pubs.filter(p => { const d = new Date(p.publishedAt); return d.getDay() === wd && d.getHours() >= a1 && d.getHours() < a2; }); if (!ps.length) return 0; return ps.reduce((s, p) => { const t = postTotals(p); return s + (t.impressions ? t.eng / t.impressions : 0); }, 0) / ps.length; }));
+  const cmax = Math.max(0.0001, ...cells.flat());
+  return `<div class="page">
+    <div class="row spread"><h1>Analytics</h1>
+      <div class="row"><select class="input" id="an-pf" style="width:auto"><option value="">All channels</option>${PF_IDS.map(c => `<option value="${c}"${UI.anPf === c ? ' selected' : ''}>${PLATFORMS[c].name}</option>`).join('')}</select>
+      <div class="seg">${[7, 30, 90].map(r => `<button class="${UI.range === r ? 'on' : ''}" data-act="range" data-v="${r}">${r}d</button>`).join('')}</div></div></div>
+    <div class="note">${ICON.info}Sample metrics generated from your published posts. Connect each network's insights API to replace them with live numbers.</div>
+    <div class="kpis">
+      <div class="panel kpi"><span class="eyebrow">Impressions</span><b>${fmtN(a.impressions)}</b><span class="delta">${delta(a.impressions, b.impressions)}</span></div>
+      <div class="panel kpi"><span class="eyebrow">Engagements</span><b>${fmtN(a.eng)}</b><span class="delta">${delta(a.eng, b.eng)}</span></div>
+      <div class="panel kpi"><span class="eyebrow">Engagement rate</span><b>${a.impressions ? (a.eng / a.impressions * 100).toFixed(1) : '0.0'}%</b><span class="delta">Engagements ÷ impressions</span></div>
+      <div class="panel kpi"><span class="eyebrow">Posts published</span><b>${a.posts}</b><span class="delta">${delta(a.posts, b.posts)}</span></div>
+      <div class="panel kpi"><span class="eyebrow">Team amplification</span><b>${a.amp}</b><span class="delta">Teammate likes and reposts</span></div>
+    </div>
+    <div class="grid-2">
+      <div class="panel pad chart stack"><h2>Impressions per day</h2>${chart}</div>
+      <div class="panel pad stack"><h2>By channel</h2><div class="bars">${perPf.map(r => `<div class="bar-row"><span class="row" style="gap:6px;flex-wrap:nowrap">${pfBadge(r.c)}${PLATFORMS[r.c].name}</span><span class="track"><i style="width:${(r.imp / pmax * 100).toFixed(1)}%;background:${PLATFORMS[r.c].color}"></i></span><span class="v">${fmtN(r.imp)}</span></div>`).join('') || '<div class="empty">No published posts in this range.</div>'}</div></div>
+    </div>
+    <div class="grid-2">
+      <div class="panel table-wrap"><table><thead><tr><th>Top posts</th><th>Channels</th><th class="num">Impr.</th><th class="num">Eng.</th><th class="num">Rate</th></tr></thead><tbody>
+        ${top.map(r => `<tr class="click" data-act="open" data-id="${r.p.id}"><td><b style="font-weight:500">${h(r.p.title)}</b><div class="mono muted">${fmtDate(r.p.publishedAt)} · ${FORMATS[r.p.format]}</div></td><td>${pfBadges(chans(r.p))}</td><td class="num">${fmtN(r.imp)}</td><td class="num">${fmtN(r.eng)}</td><td class="num">${r.imp ? (r.eng / r.imp * 100).toFixed(1) : '0.0'}%</td></tr>`).join('') || '<tr><td colspan="5" class="empty">No published posts in this range.</td></tr>'}
+      </tbody></table></div>
+      <div class="panel pad stack"><h2>When your audience engages</h2>
+        <div class="heat"><span></span>${['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => `<span style="text-align:center">${d}</span>`).join('')}
+          ${parts.map(([n], pi) => `<span>${n.slice(0, 3)}</span>${cells[pi].map(v => `<i style="opacity:${v ? (0.15 + 0.85 * v / cmax).toFixed(2) : 0.06}" title="${v ? (v * 100).toFixed(1) + '% engagement' : 'No posts'}"></i>`).join('')}`).join('')}
+        </div><span class="note">Darker cells had higher engagement rates on posts sent then.</span></div>
+    </div>
+  </div>`;
+}
+
+/* ---------- profile / grid preview ---------- */
+function mediaHTML(m, cls = '') {
+  if (!m) return `<div class="art ${cls}" style="--h:220"></div>`;
+  if (m.kind === 'art') return `<div class="art ${cls}" style="--h:${m.h}">${h(m.label || '')}</div>`;
+  if (m.kind === 'video') return `<video src="${m.src}" muted playsinline loop preload="metadata"></video>`;
+  return `<img src="${m.src}" alt="">`;
+}
+function viewProfile() {
+  const pf = UI.profPf; const P = PLATFORMS[pf]; const acct = S.accounts[pf];
+  const posts = S.posts.filter(p => p.channels.includes(pf) && p.status !== 'failed' && (p.scheduledAt || p.publishedAt)).sort((a, b) => (b.publishedAt || b.scheduledAt) - (a.publishedAt || a.scheduledAt));
+  const feedPosts = posts.filter(p => p.format === 'post'); const reels = posts.filter(p => p.format === 'reel'); const stories = posts.filter(p => p.format === 'story');
+  const tabs = [['grid', 'grid', 'Grid'], ['feed', 'feed', 'Feed']]; if (P.formats.includes('reel')) tabs.push(['reels', 'reels', 'Reels']); if (P.formats.includes('story')) tabs.push(['stories', 'story', 'Stories']);
+  if (!tabs.find(t => t[0] === UI.profTab)) UI.profTab = 'grid';
+  const tileBadge = p => p.status === 'published' ? '' : `<span class="badge">${p.status === 'scheduled' ? fmtDate(p.scheduledAt) : STATUS[p.status]}</span>`;
+  const tile = (p, tall) => `<button class="tile${p.status !== 'published' ? ' upcoming' : ''}${p.status === 'draft' ? ' draft-t' : ''}" data-act="open" data-id="${p.id}" ${p.status !== 'published' ? `draggable="true" data-gdrag="${p.id}"` : ''} aria-label="${h(p.title)}">${mediaHTML(p.media[0], tall ? '' : '')}${tileBadge(p)}</button>`;
+  let content = '';
+  if (UI.profTab === 'grid') content = `<div class="ggrid">${feedPosts.filter(p => p.media.length).map(p => tile(p)).join('') || '<div class="empty" style="grid-column:1/-1">No feed posts with media on this channel yet.</div>'}</div>`;
+  else if (UI.profTab === 'reels') content = `<div class="ggrid tall">${reels.map(p => tile(p, true)).join('') || '<div class="empty" style="grid-column:1/-1">No reels scheduled for this channel.</div>'}</div>`;
+  else if (UI.profTab === 'feed') content = `<div class="feed">${feedPosts.slice(0, 12).map(p => `<div data-act="open" data-id="${p.id}" style="cursor:pointer">${previewCard(p, pf, true)}</div>`).join('') || '<div class="empty">No feed posts on this channel.</div>'}</div>`;
+  else {
+    const s = stories[Math.min(UI.storyIdx, stories.length - 1)];
+    content = stories.length ? `<div class="pad stack">${storyFrame(s, pf, stories.indexOf(s), stories.length)}<div class="row" style="justify-content:center"><button class="btn" data-act="story" data-v="-1"${UI.storyIdx <= 0 ? ' disabled' : ''}>${ICON.left}Previous</button><button class="btn" data-act="open" data-id="${s.id}">Edit</button><button class="btn" data-act="story" data-v="1"${UI.storyIdx >= stories.length - 1 ? ' disabled' : ''}>Next${ICON.right}</button></div></div>` : '<div class="empty">No stories scheduled for this channel.</div>';
+  }
+  const hasRings = P.formats.includes('story');
+  return `<div class="page">
+    <div class="row spread"><h1>Grid & profile preview</h1></div>
+    <div class="prof-layout">
+      <div class="stack">
+        <div class="field"><label for="prof-pf">Channel</label><select class="input" id="prof-pf">${PF_IDS.filter(c => c !== 'discord').map(c => `<option value="${c}"${pf === c ? ' selected' : ''}>${PLATFORMS[c].name}</option>`).join('')}</select></div>
+        <div class="panel pad stack" style="gap:8px;font-size:13px">
+          <h2>How this preview works</h2>
+          <span class="muted">Published posts appear as they are live. Upcoming posts have a blue outline and a date badge, and drafts are faded.</span>
+          <span class="muted">On the grid, drag one upcoming tile onto another to swap their send times. Click any tile to edit it.</span>
+        </div>
+        <div class="panel pad stack" style="gap:6px"><span class="eyebrow">On this channel</span>
+          <div class="row spread"><span>Feed posts</span><b class="num">${feedPosts.length}</b></div>
+          ${P.formats.includes('reel') ? `<div class="row spread"><span>Reels / Shorts</span><b class="num">${reels.length}</b></div>` : ''}
+          ${P.formats.includes('story') ? `<div class="row spread"><span>Stories</span><b class="num">${stories.length}</b></div>` : ''}
+          <div class="row spread"><span>Upcoming</span><b class="num">${posts.filter(p => p.status !== 'published').length}</b></div>
+        </div>
+      </div>
+      <div class="phone">
+        <div class="prof">
+          <div class="row spread"><b>${h(acct.handle)}</b>${pfBadge(pf)}</div>
+          <div class="prof-top"><span class="pv-av" style="box-shadow:0 0 0 3px var(--surface),0 0 0 5px ${P.color}">${h(initials(acct.name || 'L'))}</span>
+            <div class="prof-stats"><div><b>${posts.filter(p => p.status === 'published').length + 140}</b><span>posts</span></div><div><b>${fmtN(acct.followers)}</b><span>followers</span></div><div><b>312</b><span>following</span></div></div></div>
+          <div><b style="font-size:13px">${h(acct.name)}</b><div class="prof-bio">${h(S.accounts.instagram.bio || '')}</div></div>
+        </div>
+        ${hasRings ? `<div class="rings">${stories.slice(0, 8).map((s, i) => `<button class="ring${s.status === 'published' ? ' seen' : ''}" data-act="story-open" data-v="${i}"><span><span class="in">${mediaHTML(s.media[0])}</span></span><em>${h(s.status === 'published' ? s.title : fmtDate(s.scheduledAt))}</em></button>`).join('')}</div>` : ''}
+        <div class="gtabs">${tabs.map(([k, ic, n]) => `<button class="${UI.profTab === k ? 'on' : ''}" data-act="prof-tab" data-v="${k}" aria-label="${n}">${ICON[ic]}</button>`).join('')}</div>
+        ${content}
+      </div>
+    </div></div>`;
+}
+function storyFrame(p, pf, idx, total) {
+  const acct = S.accounts[pf];
+  return `<div class="vert"><div class="bg">${mediaHTML(p.media[0])}</div>
+    <div class="top"><div class="bars">${[...Array(total)].map((_, i) => `<i class="${i <= idx ? 'done' : ''}"></i>`).join('')}</div>
+      <div class="who"><span class="pv-av">${h(initials(acct.name || 'L'))}</span>${h(acct.handle)} <span style="opacity:.75;font-weight:400">${p.status === 'published' ? ago(p.publishedAt) : fmtWhen(p.scheduledAt)}</span></div></div>
+    <div class="cap">${h(textFor(p.body, pf))}</div></div>`;
+}
+
+/* ---------- channels ---------- */
+function viewChannels() {
+  return `<div class="page">
+    <div class="row spread"><h1>Channels</h1></div>
+    <div class="note">${ICON.info}Discord posts go out for real through a channel webhook. The other networks need an approved developer app and a server to hold OAuth tokens, so sends to them are simulated and logged until those are wired into the publisher.</div>
+    <div class="ch-grid">${PF_IDS.map(c => { const P = PLATFORMS[c], a = S.accounts[c]; return `<div class="panel ch-card">
+      <div class="top">${pfBadge(c, true)}<div class="grow"><b>${P.name}</b><div class="muted" style="font-size:12px">${a.connected ? (c === 'discord' && a.webhook ? 'Webhook connected · live sends' : c === 'discord' ? 'Connected · add a webhook to send' : 'Connected · simulated sends') : 'Not connected'}</div></div>
+        <button class="switch${a.connected ? ' on' : ''}" data-act="toggle-conn" data-v="${c}" aria-label="Connect ${P.name}" aria-pressed="${a.connected}"></button></div>
+      <div class="two"><div class="field"><label for="h-${c}">${c === 'discord' ? 'Server' : 'Handle'}</label><input class="input" id="h-${c}" data-acct="${c}" data-k="handle" value="${h(a.handle)}"></div>
+        <div class="field"><label for="n-${c}">Display name</label><input class="input" id="n-${c}" data-acct="${c}" data-k="name" value="${h(a.name)}"></div></div>
+      ${c === 'discord' ? `<div class="field"><label for="wh">Webhook URL</label><input class="input" id="wh" data-acct="discord" data-k="webhook" placeholder="https://discord.com/api/webhooks/…" value="${h(a.webhook)}"></div>
+        <div class="row"><button class="btn" data-act="test-discord"${a.webhook ? '' : ' disabled'}>${ICON.send}Send test message</button><span class="muted" style="font-size:12px">Server Settings → Integrations → Webhooks</span></div>` : ''}
+      <div class="caps"><span class="fmt">${P.limit.toLocaleString()} chars</span>${P.formats.map(f => `<span class="fmt">${FORMATS[f]}</span>`).join('')}<span class="fmt">${P.markdown ? 'Markdown' : 'Unicode bold/italic'}</span></div>
+    </div>`; }).join('')}</div></div>`;
+}
+
+/* ---------- workspace ---------- */
+function viewWorkspace() {
+  return `<div class="page">
+    <h1>Workspace</h1>
+    <div class="grid-2">
+      <div class="stack">
+        <div class="panel pad stack">
+          <div class="row spread"><div><h2>Require approval</h2><span class="muted" style="font-size:13px">Posts must be approved before they can be scheduled or sent.</span></div>
+            <button class="switch${S.settings.requireApproval ? ' on' : ''}" data-act="toggle-approval" aria-label="Require approval" aria-pressed="${S.settings.requireApproval}"></button></div>
+          <div class="field"><span class="label">Default approvers</span><div class="check-list">${S.members.map(m => `<label class="chk${S.settings.defaultApprovers.includes(m.id) ? ' on' : ''}"><input type="checkbox" data-act="def-approver" value="${m.id}"${S.settings.defaultApprovers.includes(m.id) ? ' checked' : ''}>${h(m.name)}</label>`).join('')}</div></div>
+        </div>
+        <div class="panel"><div class="pad"><h2>Team</h2></div><table><tbody>${S.members.map(m => `<tr><td style="width:36px">${avatar(m.id, 28)}</td><td><b style="font-weight:500">${h(m.name)}</b></td><td class="muted">${h(m.role)}</td></tr>`).join('')}</tbody></table>
+          <form class="pad row" id="add-member"><input class="input" id="nm-name" placeholder="Name" style="flex:1;min-width:120px" required><input class="input" id="nm-role" placeholder="Role" style="flex:1;min-width:100px"><button class="btn">Add</button></form></div>
+      </div>
+      <div class="stack">
+        <div class="panel"><div class="pad"><h2>Campaigns</h2><span class="muted" style="font-size:13px">Shown as bands across the calendar.</span></div>
+          <table><tbody>${S.campaigns.map(c => `<tr><td><span class="banner" style="--h:${c.h};display:inline-block;margin:0">${h(c.name)}</span></td><td class="mono muted">${c.start} → ${c.end}</td><td style="text-align:right"><button class="btn icon ghost" data-act="del-camp" data-id="${c.id}" aria-label="Delete ${h(c.name)}">${ICON.trash}</button></td></tr>`).join('')}</tbody></table>
+          <form class="pad row" id="add-camp"><input class="input" id="cp-name" placeholder="Campaign name" style="flex:2;min-width:140px" required><input class="input" type="date" id="cp-start" required style="flex:1;min-width:130px"><input class="input" type="date" id="cp-end" required style="flex:1;min-width:130px"><button class="btn">Add</button></form></div>
+        <div class="panel"><div class="pad"><h2>Labels</h2></div>
+          <div class="pad row" style="padding-top:0">${S.labels.map(l => `<span class="row" style="gap:2px">${tagHTML(l.id)}<button class="btn icon ghost" style="padding:3px" data-act="del-label" data-id="${l.id}" aria-label="Delete ${h(l.name)}">${ICON.x.replace('<svg', '<svg width="12" height="12"')}</button></span>`).join('')}</div>
+          <form class="pad row" id="add-label" style="padding-top:0"><input class="input" id="lb-name" placeholder="New label" style="flex:1" required><button class="btn">Add</button></form></div>
+        <div class="panel pad row spread"><div><h2>Sample data</h2><span class="muted" style="font-size:13px">Everything is saved in this browser.</span></div><button class="btn danger" data-act="reset">Reset to sample data</button></div>
+      </div>
+    </div></div>`;
+}
+
+/* ============================================================
+   COMPOSER
+   ============================================================ */
+function newDraft(day) {
+  let at = null;
+  if (day) { const d = new Date(keyToTs(day)); d.setHours(10, 0, 0, 0); at = d.getTime(); if (at < Date.now()) at = Date.now() + 36e5; }
+  return { id: uid(), title: '', body: '', channels: ['instagram', 'linkedin'], format: 'post', scheduledAt: at, status: 'draft', labels: [], tagged: '', media: [], author: S.me,
+    approval: { required: S.settings.requireApproval, approvers: S.settings.defaultApprovers.filter(a => a !== S.me).length ? S.settings.defaultApprovers.filter(a => a !== S.me) : S.settings.defaultApprovers.slice(), decisions: {} },
+    likes: [], reposts: [], comments: [], log: [], results: null, publishedAt: null, createdAt: Date.now(), isNew: true };
+}
+function openComposer(id, day) {
+  UI.draft = id ? clone(post(id)) : newDraft(day);
+  UI.pvTab = UI.draft.channels[0] || null; UI.sideTab = 'preview';
+  renderModal();
+}
+function closeModal() { UI.draft = null; $('#modal').innerHTML = ''; }
+
+function warningsFor(d) {
+  const w = [];
+  if (!d.channels.length) w.push({ bad: 1, t: 'Pick at least one channel.' });
+  if (!d.body.trim() && !d.media.length) w.push({ bad: 1, t: 'Add some text or media.' });
+  d.channels.forEach(c => {
+    const P = PLATFORMS[c];
+    if (!P.formats.includes(d.format)) w.push({ t: `${P.name} doesn't support ${FORMATS[d.format].toLowerCase()}s. It will be skipped.` });
+    const n = countFor(textFor(d.body, c), c); if (n > P.limit) w.push({ bad: 1, t: `${P.name}: ${n - P.limit} characters over the ${P.limit.toLocaleString()} limit.` });
+    if ((P.needsMedia || d.format !== 'post' || (c === 'youtube' && d.format === 'post' && false)) && !d.media.length && P.formats.includes(d.format)) w.push({ bad: 1, t: `${P.name} ${FORMATS[d.format].toLowerCase()}s need an image or video.` });
+    if (c === 'youtube' && d.format === 'reel' && d.media.length && d.media[0].kind === 'image') w.push({ t: 'YouTube Shorts need a video. The image will be skipped.' });
+    if (P.titleLimit && d.title.length > P.titleLimit) w.push({ t: `${P.name} titles are capped at ${P.titleLimit} characters.` });
+    if (!S.accounts[c].connected) w.push({ bad: 1, t: `${P.name} isn't connected. Turn it on in Channels.` });
+  });
+  if (d.scheduledAt && d.scheduledAt < Date.now() - 6e4 && !['published', 'failed'].includes(d.status)) w.push({ t: 'The scheduled time is in the past. Pick a new time or send now.' });
+  return w;
+}
+function blocking(d) { return warningsFor(d).filter(x => x.bad).length > 0; }
+
+function previewCard(d, ch, compact) {
+  const P = PLATFORMS[ch]; const acct = S.accounts[ch]; const text = textFor(d.body, ch);
+  const m = d.media[0];
+  const bodyHTML = P.markdown ? richHTML(d.body) : h(text).replace(/(^|[\s(])([#@][\w.]+)/g, '$1<span class="ht">$2</span>');
+  const when = d.status === 'published' && d.publishedAt ? ago(d.publishedAt) : d.scheduledAt ? fmtWhen(d.scheduledAt) : 'Not scheduled';
+  const media = m ? `<div class="pv-media${ch === 'youtube' || ch === 'linkedin' || ch === 'x' || ch === 'facebook' ? ' wide' : ''}">${mediaHTML(m)}</div>` : '';
+  const tagged = d.tagged.trim() ? `<div class="pv-tagged">with ${h(d.tagged)}</div>` : '';
+  const actions = { instagram: ['heart', 'chat', 'send'], x: ['chat', 'repost', 'heart'], threads: ['heart', 'chat', 'repost'], linkedin: ['heart', 'chat', 'repost', 'send'], facebook: ['heart', 'chat', 'repost'], tiktok: ['heart', 'chat', 'send'], youtube: ['heart', 'chat', 'send'], discord: [] }[ch];
+  const met = metricsFor(d, ch);
+  const actHTML = actions.length ? `<div class="pv-actions">${actions.map((a, i) => `<span>${ICON[a]}${met ? fmtN([met.likes, met.comments, met.shares, met.saves][i] || 0) : ''}</span>`).join('')}${met ? `<span style="margin-left:auto">${fmtN(met.impressions)} views</span>` : ''}</div>` : '';
+  if (ch === 'discord') return `<div class="pv pv-dc"><div class="pv-head"><span class="pv-av" style="background:${P.color}">${h(initials(acct.name || 'B'))}</span><div class="who"><b>${h(acct.name)} <span class="fmt" style="color:#fff;border-color:#5865f2;background:#5865f2">APP</span></b><span>${when}</span></div></div><div class="pv-text">${bodyHTML}</div>${m ? `<div style="padding:0 12px 12px"><div class="pv-media" style="border-radius:8px;overflow:hidden;max-width:300px">${mediaHTML(m)}</div></div>` : ''}</div>`;
+  const ytTitle = ch === 'youtube' ? `<div class="pv-text" style="font-weight:600;padding-bottom:4px">${h(d.title)}</div>` : '';
+  const textFirst = ['x', 'threads', 'linkedin', 'facebook', 'discord'].includes(ch);
+  const head = `<div class="pv-head"><span class="pv-av">${h(initials(acct.name || 'L'))}</span><div class="who"><b>${h(acct.name)}</b><span>${ch === 'linkedin' ? fmtN(acct.followers) + ' followers · ' : '@' + h(acct.handle.replace(/^@/, '')) + ' · '}${when}</span></div><span style="margin-left:auto">${pfBadge(ch)}</span></div>`;
+  return `<div class="pv">${head}${textFirst ? `<div class="pv-text">${bodyHTML}</div>${tagged}${media}` : `${media}${ytTitle}<div class="pv-text" style="padding-top:10px">${ch === 'instagram' ? `<b>${h(acct.handle)}</b> ` : ''}${bodyHTML}</div>${tagged}`}${compact ? actHTML : actHTML}</div>`;
+}
+function vertPreview(d, ch) {
+  const P = PLATFORMS[ch]; const acct = S.accounts[ch];
+  if (d.format === 'story') return storyFrame(d.scheduledAt || d.publishedAt ? d : { ...d, scheduledAt: Date.now() }, ch, 0, 1);
+  return `<div class="vert"><div class="bg">${mediaHTML(d.media[0])}</div>
+    <div class="top"><div class="who" style="justify-content:center;opacity:.9">${ch === 'youtube' ? 'Shorts' : ch === 'tiktok' ? 'For You' : 'Reels'}</div></div>
+    <div class="cap"><b>@${h(acct.handle.replace(/^@/, ''))}</b>\n${h(textFor(d.body, ch))}</div>
+    <div class="rail"><span>${ICON.heartFill}</span><span>${ICON.chat}</span><span>${ICON.send}</span></div></div>`;
+}
+function previewPane() {
+  const d = UI.draft;
+  if (!d.channels.length) return '<div class="empty">Pick a channel to see a preview.</div>';
+  if (!d.channels.includes(UI.pvTab)) UI.pvTab = d.channels[0];
+  const ch = UI.pvTab; const P = PLATFORMS[ch]; const text = textFor(d.body, ch); const n = countFor(text, ch);
+  const supported = P.formats.includes(d.format);
+  const pv = !supported ? `<div class="empty">${P.name} doesn't support ${FORMATS[d.format].toLowerCase()}s, so this post will skip it.</div>` : d.format === 'post' ? previewCard(d, ch) : vertPreview(d, ch);
+  return `<div class="tabs" role="tablist">${d.channels.map(c => `<button role="tab" class="${c === ch ? 'on' : ''}" data-act="pv-tab" data-v="${c}">${pfBadge(c)}${PLATFORMS[c].name}</button>`).join('')}</div>
+    <div class="count-row"><span>${n.toLocaleString()} / ${P.limit.toLocaleString()}${P.weighted ? ' (X weighting)' : ''}</span><span class="meter${n > P.limit ? ' over' : ''}"><i style="width:${Math.min(100, n / P.limit * 100)}%"></i></span>
+      <button class="btn ghost" data-act="copy-text" data-v="${ch}" style="padding:4px 8px;font-size:12px">${ICON.copy}Copy ${P.name} text</button></div>
+    ${pv}
+    <div class="note">${ICON.info}${P.markdown ? 'Discord renders **bold** and *italic* natively.' : 'Bold and italic go out as Unicode letters, since this network has no rich text. Screen readers may read them letter by letter, so keep styling to a few words.'}</div>`;
+}
+
+function sidePane() {
+  const d = UI.draft;
+  const tabs = `<div class="tabs"><button class="${UI.sideTab === 'preview' ? 'on' : ''}" data-act="side-tab" data-v="preview">Preview</button>
+    <button class="${UI.sideTab === 'team' ? 'on' : ''}" data-act="side-tab" data-v="team">Team${d.comments.length ? ` <span class="mono muted">${d.comments.length}</span>` : ''}</button>
+    <button class="${UI.sideTab === 'activity' ? 'on' : ''}" data-act="side-tab" data-v="activity">Activity</button></div>`;
+  let body = '';
+  if (UI.sideTab === 'preview') body = `<div class="stack" id="pv-pane">${previewPane()}</div>`;
+  else if (UI.sideTab === 'team') {
+    const liked = d.likes.includes(S.me), rep = d.reposts.includes(S.me);
+    body = `<div class="stack">
+      <div class="react-row">
+        <button class="react${liked ? ' on' : ''}" data-act="like">${liked ? ICON.heartFill : ICON.heart}Like · ${d.likes.length}</button>
+        <button class="react${rep ? ' on' : ''}" data-act="repost">${ICON.repost}${rep ? 'Reposting' : 'I\'ll repost'} · ${d.reposts.length}</button>
+      </div>
+      ${d.likes.length || d.reposts.length ? `<div class="muted" style="font-size:12.5px">${d.likes.length ? `Liked by ${d.likes.map(u => h(member(u).name.split(' ')[0])).join(', ')}. ` : ''}${d.reposts.length ? `${d.reposts.map(u => h(member(u).name.split(' ')[0])).join(', ')} will repost from their own accounts when it goes live.` : ''}</div>` : '<div class="muted" style="font-size:12.5px">Teammates can like a post and sign up to repost it from their own accounts when it goes live.</div>'}
+      <div class="comments">${d.comments.map(c => `<div class="comment">${avatar(c.who, 28)}<div class="body"><div class="meta"><b>${h(member(c.who).name)}</b>${ago(c.at)}</div><p>${h(c.text).replace(/@(\w+)/g, '<span class="mention">@$1</span>')}</p></div></div>`).join('') || '<div class="muted">No comments yet.</div>'}</div>
+      <form class="stack" id="comment-form" style="gap:6px"><textarea class="input" id="c-comment" rows="2" placeholder="Leave a comment. Type @ and a first name to notify a teammate."></textarea>
+        <div class="row spread"><span class="muted" style="font-size:12px">Team: ${S.members.map(m => '@' + h(m.name.split(' ')[0])).join(' ')}</span><button class="btn primary">Comment</button></div></form>
+    </div>`;
+  } else {
+    body = `<div class="stack">
+      ${d.results ? `<div class="panel pad"><span class="eyebrow">Send results</span>${Object.entries(d.results).map(([c, r]) => `<div class="result">${pfBadge(c)}<span>${PLATFORMS[c].name}</span><span style="margin-left:auto" class="pill ${r.ok ? 'published' : r.skipped ? 'draft' : 'failed'}">${r.ok ? (r.live ? 'Sent' : 'Simulated') : r.skipped ? 'Skipped' : 'Failed'}</span></div>${r.msg && !r.ok ? `<div class="muted" style="font-size:12px;padding-left:26px">${h(r.msg)}</div>` : ''}`).join('')}</div>` : ''}
+      ${d.status === 'published' ? `<div class="panel pad stack" style="gap:6px"><span class="eyebrow">Performance (sample)</span>${(() => { const t = postTotals(d); return `<div class="row spread"><span>Impressions</span><b class="num">${fmtN(t.impressions)}</b></div><div class="row spread"><span>Engagements</span><b class="num">${fmtN(t.eng)}</b></div><div class="row spread"><span>Shares</span><b class="num">${fmtN(t.shares)}</b></div>`; })()}</div>` : ''}
+      <div class="log">${d.log.slice().reverse().map(l => `<div><time>${fmtWhen(l.at)}</time><span><b style="color:var(--fg);font-weight:500">${h(member(l.who).name)}</b> ${h(l.text)}</span></div>`).join('') || '<span>No activity yet.</span>'}</div>
+    </div>`;
+  }
+  return tabs + body;
+}
+
+function footHTML(d) {
+  const locked = d.status === 'published' || d.status === 'publishing';
+  const canApprove = needsMyApproval(d);
+  const needApproval = d.approval.required && !approvalComplete(d);
+  let actions = '';
+  if (locked) actions = `<button class="btn" data-act="duplicate">${ICON.copy}Duplicate</button>`;
+  else {
+    actions = `<button class="btn" data-act="save">Save draft</button>`;
+    if (canApprove) actions += `<button class="btn" data-act="decide-m" data-v="changes">Request changes</button><button class="btn ok" data-act="decide-m" data-v="approved">${ICON.check}Approve</button>`;
+    if (needApproval && d.status !== 'in_review') actions += `<button class="btn primary" data-act="request"${blocking(d) ? ' disabled' : ''}>Request approval</button>`;
+    else if (!needApproval) actions += `<button class="btn" data-act="publish-now"${blocking(d) ? ' disabled' : ''}>${ICON.send}Send now</button><button class="btn primary" data-act="schedule"${blocking(d) || !d.scheduledAt ? ' disabled' : ''}>${ICON.clock}${d.status === 'scheduled' ? 'Update schedule' : 'Schedule'}</button>`;
+  }
+  return `${!d.isNew && !locked ? `<button class="btn danger ghost" data-act="delete">${ICON.trash}<span>Delete</span></button>` : ''}<span class="grow muted" style="font-size:12px">${d.isNew ? 'New post' : `Created by ${h(member(d.author).name)}`}</span>${actions}`;
+}
+function warnsHTML(d) {
+  const warns = warningsFor(d);
+  if (!warns.length || d.status === 'published' || d.status === 'publishing') return '';
+  return `<div class="warn-list">${warns.map(w => `<div class="warn${w.bad ? ' bad' : ''}">${ICON.warn}<span>${h(w.t)}</span></div>`).join('')}</div>`;
+}
+function renderModal() {
+  const d = UI.draft; if (!d) return;
+  const locked = d.status === 'published' || d.status === 'publishing';
+  const dis = locked ? ' disabled' : '';
+  const approved = approvalComplete(d);
+  $('#modal').innerHTML = `<div class="overlay" data-act="overlay"><div class="sheet" role="dialog" aria-modal="true" aria-label="Post composer">
+    <div class="sheet-head">${pill(d.status)}<input class="title-input" id="c-title" placeholder="Post title (internal, and the YouTube title)" value="${h(d.title)}"${dis}>
+      <button class="btn icon ghost" data-act="close" aria-label="Close">${ICON.x}</button></div>
+    <div class="sheet-body">
+      <div>
+        <div class="editor">
+          <div class="toolbar">
+            <button type="button" data-act="fmt" data-v="**" title="Bold (Ctrl/⌘ B)" aria-label="Bold"${dis}>${ICON.bold}</button>
+            <button type="button" data-act="fmt" data-v="*" title="Italic (Ctrl/⌘ I)" aria-label="Italic"${dis}>${ICON.italic}</button>
+            <span class="sep"></span>
+            <button type="button" data-act="insert" data-v="#" title="Hashtag" aria-label="Insert hashtag"${dis}>${ICON.hash}</button>
+            <button type="button" data-act="insert" data-v="@" title="Mention" aria-label="Insert mention"${dis}>${ICON.at}</button>
+            <span class="hint">**bold** · *italic*</span>
+          </div>
+          <textarea id="c-body" placeholder="What do you want to say?"${dis}>${h(d.body)}</textarea>
+        </div>
+        <div class="field"><span class="label">Channels</span>
+          <div class="chan-grid">${PF_IDS.map(c => { const on = d.channels.includes(c); const sup = PLATFORMS[c].formats.includes(d.format); return `<button type="button" class="chan${on ? ' on' : ''}${sup ? '' : ' off'}" data-act="chan" data-v="${c}" aria-pressed="${on}"${dis}>${pfBadge(c)}<span>${PLATFORMS[c].name}${sup ? '' : '<small>No ' + d.format + 's</small>'}${S.accounts[c].connected ? '' : '<small>Not connected</small>'}</span></button>`; }).join('')}</div></div>
+        <div class="two">
+          <div class="field"><span class="label">Format</span><div class="seg">${Object.entries(FORMATS).map(([k, v]) => `<button type="button" class="${d.format === k ? 'on' : ''}" data-act="format" data-v="${k}"${dis}>${v}</button>`).join('')}</div></div>
+          <div class="field"><label for="c-when">Send at</label><input class="input" type="datetime-local" id="c-when" value="${toLocalInput(d.scheduledAt)}"${dis}></div>
+        </div>
+        <div class="field"><span class="label">Media</span><div class="media-row">${d.media.map((m, i) => `<div class="thumb">${mediaHTML(m)}${locked ? '' : `<button type="button" data-act="rm-media" data-v="${i}" aria-label="Remove">×</button>`}</div>`).join('')}${locked ? '' : `<label class="dropzone" for="file-in" id="dz">Add image<br>or video</label>`}</div></div>
+        <div class="field"><span class="label">Labels</span><div class="check-list">${S.labels.map(l => `<label class="chk${d.labels.includes(l.id) ? ' on' : ''}"><input type="checkbox" data-act="label" value="${l.id}"${d.labels.includes(l.id) ? ' checked' : ''}${dis}>${tagHTML(l.id)}</label>`).join('')}</div></div>
+        <div class="field"><label for="c-tagged">Tag accounts</label><input class="input" id="c-tagged" placeholder="@partner, @photographer" value="${h(d.tagged)}"${dis}></div>
+        <div class="panel pad stack" style="gap:8px">
+          <div class="row spread"><div><h2>Approval</h2><span class="muted" style="font-size:12.5px">${d.approval.required ? (approved ? 'Approved. Ready to schedule.' : 'Approvers must sign off before this can be scheduled.') : 'Not required for this post.'}</span></div>
+            <button type="button" class="switch${d.approval.required ? ' on' : ''}" data-act="req-approval" aria-label="Require approval" aria-pressed="${d.approval.required}"${dis}></button></div>
+          ${d.approval.required ? S.members.map(m => { const dec = d.approval.decisions[m.id]; const on = d.approval.approvers.includes(m.id); return `<label class="approver"><input type="checkbox" data-act="approver" value="${m.id}"${on ? ' checked' : ''}${dis || dec ? ' disabled' : ''}>${avatar(m.id)}<span class="grow">${h(m.name)} <span class="muted">· ${h(m.role)}</span></span>${on ? (dec === 'approved' ? '<span class="pill published">Approved</span>' : dec === 'changes' ? '<span class="pill changes">Changes</span>' : '<span class="pill">Waiting</span>') : ''}</label>`; }).join('') : ''}
+        </div>
+        <div id="warns">${warnsHTML(d)}</div>
+      </div>
+      <div id="side">${sidePane()}</div>
+    </div>
+    <div class="sheet-foot" id="foot">${footHTML(d)}</div>
+  </div></div>`;
+}
+function refreshPreview() {
+  const pane = $('#pv-pane'); if (pane) pane.innerHTML = previewPane();
+}
+function refreshChecks() {
+  const d = UI.draft; if (!d) return;
+  $('#warns').innerHTML = warnsHTML(d); $('#foot').innerHTML = footHTML(d);
+}
+function refreshModalKeepFocus() {
+  const ta = $('#c-body'); const sel = ta ? [ta.selectionStart, ta.selectionEnd, document.activeElement === ta] : null;
+  const scroller = document.querySelector('.sheet-body > div'); const st = scroller?.scrollTop;
+  renderModal();
+  const sc2 = document.querySelector('.sheet-body > div'); if (sc2 && st != null) sc2.scrollTop = st;
+  if (sel && sel[2]) { const t = $('#c-body'); t.focus(); t.setSelectionRange(sel[0], sel[1]); }
+}
+
+function commitDraft(status) {
+  const d = UI.draft; const wasNew = d.isNew; delete d.isNew;
+  if (status) d.status = status;
+  const i = S.posts.findIndex(p => p.id === d.id);
+  if (i >= 0) S.posts[i] = d; else S.posts.push(d);
+  if (wasNew) d.log.unshift({ at: d.createdAt, who: d.author, text: 'created the post' });
+  save();
+  return d;
+}
+
+/* ---------- formatting in the editor ---------- */
+function wrapSelection(mark) {
+  const ta = $('#c-body'); if (!ta || ta.disabled) return;
+  let s = ta.selectionStart, e = ta.selectionEnd; const v = ta.value; const L = mark.length;
+  const before = v.slice(s - L, s), after = v.slice(e, e + L);
+  // toggle off if the selection is already wrapped in this exact mark
+  const wrapped = before === mark && after === mark && !(L === 1 && v.slice(s - 2, s) === '**' && v.slice(e, e + 2) === '**' && v.slice(s - 3, s) !== '***');
+  if (wrapped) { ta.value = v.slice(0, s - L) + v.slice(s, e) + v.slice(e + L); ta.setSelectionRange(s - L, e - L); }
+  else { const sel = v.slice(s, e) || (mark === '**' ? 'bold text' : 'italic text'); ta.value = v.slice(0, s) + mark + sel + mark + v.slice(e); ta.setSelectionRange(s + L, s + L + sel.length); }
+  ta.focus(); UI.draft.body = ta.value; refreshPreview(); refreshChecks();
+}
+function insertAtCursor(txt) {
+  const ta = $('#c-body'); if (!ta || ta.disabled) return; const s = ta.selectionStart;
+  const pre = s > 0 && !/\s/.test(ta.value[s - 1]) ? ' ' : '';
+  ta.setRangeText(pre + txt, s, ta.selectionEnd, 'end'); ta.focus(); UI.draft.body = ta.value; refreshPreview();
+}
+
+/* ============================================================
+   PUBLISHING
+   ============================================================ */
+function dataURLtoBlob(u) { const [head, b64] = u.split(','); const mime = head.match(/:(.*?);/)[1]; const bin = atob(b64); const a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new Blob([a], { type: mime }); }
+const PUBLISHERS = {
+  async discord(p, acct) {
+    if (!acct.webhook) return { ok: true, live: false, msg: 'Simulated send. Add a webhook URL in Channels to post for real.' };
+    const payload = { content: (p.title ? '' : '') + p.body.slice(0, 2000), username: acct.name || 'Postboard' };
+    const m = p.media.find(x => x.src && x.src.startsWith('data:'));
+    let init;
+    if (m) { const fd = new FormData(); fd.append('payload_json', JSON.stringify(payload)); fd.append('files[0]', dataURLtoBlob(m.src), m.kind === 'video' ? 'clip.mp4' : 'image.jpg'); init = { method: 'POST', body: fd }; }
+    else init = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) };
+    try { const r = await fetch(acct.webhook + (acct.webhook.includes('?') ? '&' : '?') + 'wait=true', init); return r.ok ? { ok: true, live: true } : { ok: false, msg: `Discord returned ${r.status}. Check the webhook URL.` }; }
+    catch (e) { return { ok: false, msg: 'The request was blocked. This page may be running somewhere that blocks outside requests; open the file locally or host it to send.' }; }
+  },
+  // Each of these is where a real API call goes: Instagram Graph API, LinkedIn Posts API, X API v2, TikTok Content Posting API,
+  // Facebook Pages API, Threads API, YouTube Data API. They need OAuth tokens held by a server, so here they simulate.
+  async default(p, acct, ch) { await new Promise(r => setTimeout(r, 350)); return { ok: true, live: false, msg: `Simulated send to ${PLATFORMS[ch].name}.` }; },
+};
+async function publishPost(p) {
+  if (p.status === 'publishing') return;
+  p.status = 'publishing'; save(); rerender(p.id);
+  const results = {};
+  for (const ch of p.channels) {
+    const P = PLATFORMS[ch], acct = S.accounts[ch];
+    if (!P.formats.includes(p.format)) { results[ch] = { ok: false, skipped: true, msg: `${P.name} doesn't support ${FORMATS[p.format].toLowerCase()}s.` }; continue; }
+    if (!acct.connected) { results[ch] = { ok: false, msg: `${P.name} isn't connected.` }; continue; }
+    results[ch] = await (PUBLISHERS[ch] || PUBLISHERS.default)(p, acct, ch);
+  }
+  const fresh = post(p.id) || p; // the post may have been replaced while awaiting
+  fresh.results = results;
+  const okCount = Object.values(results).filter(r => r.ok).length;
+  const failed = Object.entries(results).filter(([, r]) => !r.ok && !r.skipped).map(([c]) => PLATFORMS[c].name);
+  if (okCount) { fresh.status = 'published'; fresh.publishedAt = Date.now(); }
+  else fresh.status = 'failed';
+  fresh.log.push({ at: Date.now(), who: 'system', text: okCount ? `published to ${okCount} channel${okCount > 1 ? 's' : ''}${failed.length ? `; failed on ${failed.join(', ')}` : ''}` : 'failed to send' });
+  notify('all', okCount ? `“${fresh.title || 'Untitled'}” went out to ${okCount} channel${okCount > 1 ? 's' : ''}${failed.length ? `, failed on ${failed.join(', ')}` : ''}` : `“${fresh.title || 'Untitled'}” failed to send`, fresh.id);
+  save(); rerender(fresh.id);
+  toast(okCount ? `Published “${fresh.title || 'Untitled'}”` : `“${fresh.title || 'Untitled'}” failed to send`);
+}
+function rerender(id) {
+  render();
+  if (UI.draft && UI.draft.id === id && !UI.draft.isNew) { const p = post(id); if (p) { UI.draft = clone(p); refreshModalKeepFocus(); } }
+}
+// Scheduler: checks every 20s while the page is open.
+function tick() {
+  const due = S.posts.filter(p => p.status === 'scheduled' && p.scheduledAt && p.scheduledAt <= Date.now());
+  due.forEach(p => { if (approvalComplete(p)) publishPost(p); });
+}
+setInterval(tick, 20000);
+
+/* ============================================================
+   EVENTS
+   ============================================================ */
+let toastTimer;
+function toast(msg) {
+  let t = $('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
+  t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 3200);
+}
+
+function decide(p, v) {
+  p.approval.decisions[S.me] = v;
+  addLog(p, v === 'approved' ? 'approved' : 'requested changes');
+  if (v === 'changes') { p.status = 'changes'; notify(p.author, `${member(S.me).name} requested changes on “${p.title}”`, p.id); }
+  else if (approvalComplete(p)) {
+    p.status = p.scheduledAt && p.scheduledAt > Date.now() ? 'scheduled' : 'approved';
+    notify(p.author, `“${p.title}” is approved${p.status === 'scheduled' ? ' and scheduled for ' + fmtWhen(p.scheduledAt) : ''}`, p.id);
+  }
+}
+
+document.addEventListener('click', async e => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const act = el.dataset.act, v = el.dataset.v, id = el.dataset.id; const d = UI.draft;
+  if (el.tagName === 'INPUT') return; // checkboxes handled in change
+  switch (act) {
+    case 'view': UI.view = v; render(); $('#main').scrollTop = 0; break;
+    case 'layout': UI.layout = v; render(); break;
+    case 'cal-mode': UI.calMode = v; render(); break;
+    case 'cal-today': UI.cursor = Date.now(); render(); break;
+    case 'cal-step': { const n = +v; if (UI.calMode === '1m') { const x = new Date(UI.cursor); x.setDate(1); x.setMonth(x.getMonth() + n); UI.cursor = x.getTime(); } else UI.cursor = addDays(UI.cursor, n * (UI.calMode === '1w' ? 7 : 14)); render(); break; }
+    case 'new': e.stopPropagation(); openComposer(null, el.dataset.day); break;
+    case 'open': if (!e.target.closest('[data-act="new"]')) openComposer(id); break;
+    case 'decide': { const p = post(id); decide(p, v); save(); render(); toast(v === 'approved' ? 'Approved' : 'Sent back for changes'); break; }
+    case 'notif': { const n = S.notifications.find(x => x.id === id); n.read = true; save(); render(); if (post(n.postId)) openComposer(n.postId); break; }
+    case 'read-all': S.notifications.forEach(n => { if (n.to === S.me || n.to === 'all') n.read = true; }); save(); render(); break;
+    case 'range': UI.range = +v; render(); break;
+    case 'prof-tab': UI.profTab = v; UI.storyIdx = 0; render(); break;
+    case 'story': UI.storyIdx += +v; render(); break;
+    case 'story-open': UI.profTab = 'stories'; UI.storyIdx = +v; render(); break;
+    case 'toggle-conn': S.accounts[v].connected = !S.accounts[v].connected; save(); render(); toast(`${PLATFORMS[v].name} ${S.accounts[v].connected ? 'connected' : 'disconnected'}`); break;
+    case 'test-discord': { const r = await PUBLISHERS.discord({ title: '', body: '**Postboard test**: this channel is connected.', media: [] }, S.accounts.discord); toast(r.ok ? 'Test message sent to Discord' : r.msg); break; }
+    case 'toggle-approval': S.settings.requireApproval = !S.settings.requireApproval; save(); render(); break;
+    case 'del-camp': S.campaigns = S.campaigns.filter(c => c.id !== id); save(); render(); break;
+    case 'del-label': S.labels = S.labels.filter(l => l.id !== id); S.posts.forEach(p => p.labels = p.labels.filter(x => x !== id)); save(); render(); break;
+    case 'reset':
+      if (el.dataset.confirm) { S = seed(); save(); render(); toast('Reset to sample data'); }
+      else { el.dataset.confirm = '1'; el.textContent = 'Click again to erase your changes'; }
+      break;
+    // composer
+    case 'overlay': if (e.target === el) closeModal(); break;
+    case 'close': closeModal(); break;
+    case 'fmt': wrapSelection(v); break;
+    case 'insert': insertAtCursor(v); break;
+    case 'chan': { const i = d.channels.indexOf(v); i >= 0 ? d.channels.splice(i, 1) : d.channels.push(v); if (i < 0) UI.pvTab = v; refreshModalKeepFocus(); break; }
+    case 'format': d.format = v; refreshModalKeepFocus(); break;
+    case 'rm-media': d.media.splice(+v, 1); refreshModalKeepFocus(); break;
+    case 'req-approval': d.approval.required = !d.approval.required; refreshModalKeepFocus(); break;
+    case 'pv-tab': UI.pvTab = v; refreshPreview(); break;
+    case 'side-tab': UI.sideTab = v; $('#side').innerHTML = sidePane(); break;
+    case 'copy-text': { const txt = textFor(d.body, v) + (d.tagged.trim() ? '\n\n' + d.tagged : ''); try { await navigator.clipboard.writeText(txt); toast(`Copied ${PLATFORMS[v].name} text`); } catch (err) { toast('Copy was blocked. Select the preview text and copy it manually.'); } break; }
+    case 'like': case 'repost': {
+      const key = act === 'like' ? 'likes' : 'reposts'; const i = d[key].indexOf(S.me); i >= 0 ? d[key].splice(i, 1) : d[key].push(S.me);
+      if (!d.isNew) { const p = post(d.id); p[key] = d[key].slice(); if (i < 0) { addLog(p, act === 'like' ? 'liked the post' : 'signed up to repost'); if (p.author !== S.me) notify(p.author, `${member(S.me).name} ${act === 'like' ? 'liked' : 'will repost'} “${p.title}”`, p.id); d.log = clone(p.log); } save(); render(); }
+      $('#side').innerHTML = sidePane(); break;
+    }
+    case 'save': { const p = commitDraft(['scheduled', 'in_review', 'changes', 'approved', 'failed'].includes(d.status) ? d.status : 'draft'); addLog(p, 'saved changes'); save(); closeModal(); render(); toast('Saved'); break; }
+    case 'request': {
+      d.approval.decisions = {}; addLog(d, 'requested approval');
+      const p = commitDraft('in_review');
+      p.approval.approvers.forEach(a => { if (a !== S.me) notify(a, `${member(S.me).name} asked you to approve “${p.title || 'Untitled'}”`, p.id); });
+      if (p.approval.approvers.includes(S.me)) { /* self-approval still needs an explicit click */ }
+      save(); closeModal(); render(); toast('Sent for approval'); break;
+    }
+    case 'decide-m': { decide(d, v); commitDraft(); closeModal(); render(); toast(v === 'approved' ? 'Approved' : 'Sent back for changes'); break; }
+    case 'schedule': {
+      if (d.scheduledAt <= Date.now()) { toast('Pick a time in the future, or use Send now.'); break; }
+      addLog(d, `scheduled for ${fmtWhen(d.scheduledAt)}`); commitDraft('scheduled'); closeModal(); render(); toast(`Scheduled for ${fmtWhen(d.scheduledAt)}`); break;
+    }
+    case 'publish-now': { addLog(d, 'sent the post now'); const p = commitDraft(); if (!p.scheduledAt || p.scheduledAt > Date.now()) p.scheduledAt = Date.now(); closeModal(); render(); publishPost(p); break; }
+    case 'delete':
+      if (el.dataset.confirm) { S.posts = S.posts.filter(p => p.id !== d.id); save(); closeModal(); render(); toast('Post deleted'); }
+      else { el.dataset.confirm = '1'; el.querySelector('span').textContent = 'Click again to delete'; }
+      break;
+    case 'duplicate': { const c = clone(d); Object.assign(c, { id: uid(), title: d.title + ' (copy)', status: 'draft', results: null, publishedAt: null, scheduledAt: null, likes: [], reposts: [], comments: [], log: [], createdAt: Date.now(), author: S.me, isNew: true }); c.approval.decisions = {}; UI.draft = c; renderModal(); break; }
+  }
+});
+
+document.addEventListener('change', e => {
+  const t = e.target; const d = UI.draft;
+  if (t.id === 'me-select') { S.me = t.value; save(); render(); if (d) refreshModalKeepFocus(); toast(`Now acting as ${member(S.me).name}`); return; }
+  if (t.id === 'f-ch') { UI.filters.ch = t.value; render(); return; }
+  if (t.id === 'f-label') { UI.filters.label = t.value; render(); return; }
+  if (t.id === 'f-status') { UI.filters.status = t.value; render(); return; }
+  if (t.id === 'an-pf') { UI.anPf = t.value; render(); return; }
+  if (t.id === 'prof-pf') { UI.profPf = t.value; UI.storyIdx = 0; render(); return; }
+  if (t.dataset.act === 'def-approver') { const a = S.settings.defaultApprovers; t.checked ? a.push(t.value) : a.splice(a.indexOf(t.value), 1); save(); render(); return; }
+  if (t.dataset.acct) { S.accounts[t.dataset.acct][t.dataset.k] = t.value.trim(); save(); render(); return; }
+  if (!d) return;
+  if (t.id === 'c-when') { d.scheduledAt = t.value ? new Date(t.value).getTime() : null; refreshModalKeepFocus(); }
+  else if (t.dataset.act === 'label') { t.checked ? d.labels.push(t.value) : d.labels.splice(d.labels.indexOf(t.value), 1); refreshModalKeepFocus(); }
+  else if (t.dataset.act === 'approver') { const a = d.approval.approvers; t.checked ? a.push(t.value) : a.splice(a.indexOf(t.value), 1); refreshModalKeepFocus(); }
+  else if (t.id === 'file-in') { addFiles([...t.files]); t.value = ''; }
+});
+
+let warnTimer;
+document.addEventListener('input', e => {
+  const t = e.target; const d = UI.draft; if (!d) return;
+  if (t.id === 'c-body') { d.body = t.value; refreshPreview(); clearTimeout(warnTimer); warnTimer = setTimeout(refreshChecks, 300); }
+  else if (t.id === 'c-title') { d.title = t.value; clearTimeout(warnTimer); warnTimer = setTimeout(refreshChecks, 300); }
+  else if (t.id === 'c-tagged') { d.tagged = t.value; refreshPreview(); }
+});
+
+document.addEventListener('keydown', e => {
+  if (e.target.id === 'c-body' && (e.metaKey || e.ctrlKey) && !e.shiftKey) {
+    if (e.key.toLowerCase() === 'b') { e.preventDefault(); wrapSelection('**'); }
+    if (e.key.toLowerCase() === 'i') { e.preventDefault(); wrapSelection('*'); }
+  }
+  if (e.key === 'Escape' && UI.draft) closeModal();
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList?.contains('card')) { e.preventDefault(); openComposer(e.target.dataset.id); }
+});
+
+document.addEventListener('submit', e => {
+  e.preventDefault(); const f = e.target;
+  if (f.id === 'comment-form') {
+    const ta = $('#c-comment'); const text = ta.value.trim(); if (!text) return; const d = UI.draft;
+    const c = { id: uid(), who: S.me, text, at: Date.now() }; d.comments.push(c);
+    const mentioned = S.members.filter(m => new RegExp('@' + m.name.split(' ')[0] + '\\b', 'i').test(text) && m.id !== S.me);
+    if (!d.isNew) {
+      const p = post(d.id); p.comments = clone(d.comments); addLog(p, 'commented'); d.log = clone(p.log);
+      mentioned.forEach(m => notify(m.id, `${member(S.me).name} mentioned you on “${p.title}”`, p.id));
+      if (p.author !== S.me && !mentioned.find(m => m.id === p.author)) notify(p.author, `${member(S.me).name} commented on “${p.title}”`, p.id);
+      save(); render();
+    }
+    $('#side').innerHTML = sidePane();
+  }
+  if (f.id === 'add-member') { const n = $('#nm-name').value.trim(); if (!n) return; const hues = ['#0e7490', '#b45309', '#be185d', '#4d7c0f']; S.members.push({ id: uid(), name: n, role: $('#nm-role').value.trim() || 'Member', color: hues[S.members.length % hues.length] }); save(); render(); }
+  if (f.id === 'add-camp') { const s = $('#cp-start').value, en = $('#cp-end').value; if (!s || !en) return; S.campaigns.push({ id: uid(), name: $('#cp-name').value.trim(), start: s <= en ? s : en, end: s <= en ? en : s, h: Math.floor(Math.random() * 360) }); save(); render(); }
+  if (f.id === 'add-label') { S.labels.push({ id: uid(), name: $('#lb-name').value.trim(), h: Math.floor(Math.random() * 360) }); save(); render(); }
+});
+
+/* ---------- media upload: downscale images so they fit in storage ---------- */
+function addFiles(files) {
+  const d = UI.draft; if (!d) return;
+  files.forEach(file => {
+    if (file.type.startsWith('video/')) {
+      if (file.size > 3.5e6) { toast('Videos over 3.5 MB are too large to keep in browser storage. Try a shorter clip.'); return; }
+      const r = new FileReader(); r.onload = () => { d.media.push({ kind: 'video', src: r.result }); refreshModalKeepFocus(); }; r.readAsDataURL(file); return;
+    }
+    if (!file.type.startsWith('image/')) return;
+    const img = new Image(); const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const max = 1080, k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      d.media.push({ kind: 'image', src: c.toDataURL('image/jpeg', 0.82) }); refreshModalKeepFocus();
+    };
+    img.src = url;
+  });
+}
+document.addEventListener('dragover', e => { if (UI.draft && e.dataTransfer?.types.includes('Files')) e.preventDefault(); });
+document.addEventListener('drop', e => { if (UI.draft && e.dataTransfer?.files.length) { e.preventDefault(); addFiles([...e.dataTransfer.files]); } });
+
+/* ---------- drag to reschedule (calendar) and swap (grid) ---------- */
+let dragId = null, gDragId = null;
+document.addEventListener('dragstart', e => {
+  const c = e.target.closest?.('[data-drag]'); const g = e.target.closest?.('[data-gdrag]');
+  if (g) { gDragId = g.dataset.gdrag; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', gDragId); return; }
+  if (c) { dragId = c.dataset.drag; c.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragId); }
+});
+document.addEventListener('dragend', () => { dragId = gDragId = null; document.querySelectorAll('.dragging,.drop').forEach(x => x.classList.remove('dragging', 'drop')); });
+document.addEventListener('dragover', e => {
+  if (dragId) { const cell = e.target.closest('.cell'); if (cell) { e.preventDefault(); document.querySelectorAll('.cell.drop').forEach(x => x !== cell && x.classList.remove('drop')); cell.classList.add('drop'); } }
+  if (gDragId) { const t = e.target.closest('[data-gdrag]'); if (t) { e.preventDefault(); document.querySelectorAll('.tile.drop').forEach(x => x !== t && x.classList.remove('drop')); if (t.dataset.gdrag !== gDragId) t.classList.add('drop'); } }
+});
+document.addEventListener('drop', e => {
+  if (dragId) {
+    const cell = e.target.closest('.cell'); if (!cell) return; e.preventDefault();
+    const p = post(dragId); const old = new Date(p.scheduledAt); const nd = new Date(keyToTs(cell.dataset.day)); nd.setHours(old.getHours(), old.getMinutes(), 0, 0);
+    if (nd.getTime() < Date.now()) { toast('That time has already passed. Drop it on a later day.'); dragId = null; render(); return; }
+    p.scheduledAt = nd.getTime(); addLog(p, `moved to ${fmtWhen(p.scheduledAt)}`); dragId = null; save(); render(); toast(`Moved to ${fmtWhen(p.scheduledAt)}`);
+  }
+  if (gDragId) {
+    const t = e.target.closest('[data-gdrag]'); if (!t || t.dataset.gdrag === gDragId) return; e.preventDefault();
+    const a = post(gDragId), b = post(t.dataset.gdrag); [a.scheduledAt, b.scheduledAt] = [b.scheduledAt, a.scheduledAt];
+    addLog(a, `swapped times with “${b.title}”`); addLog(b, `swapped times with “${a.title}”`); gDragId = null; save(); render(); toast('Swapped send times');
+  }
+});
+
+render();
+tick();
+</script>
+</body>
+</html>
