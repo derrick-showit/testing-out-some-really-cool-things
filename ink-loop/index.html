@@ -517,11 +517,20 @@ $('o-speed').onclick = () => { const s = [0.5, 1, 2, 3]; opts.speed = s[(s.index
 $('play').onclick = togglePreview;
 pv.onclick = togglePreview;
 
-$('dl').onclick = () => {
+// Inside the claude.ai viewer, files go through its downloads capability; elsewhere a plain link works.
+const dlCap = window.claude?.use ? window.claude.use('downloads').catch(() => null) : Promise.resolve(null);
+$('dl').onclick = async () => {
   const svg = buildSVG();
+  const filename = `ink-loop-${new Date().toISOString().slice(0, 10)}.svg`;
+  const downloads = await dlCap;
+  if (downloads) {
+    try { await downloads.save({ filename, data: svg }); toast('Saved ' + filename); }
+    catch (err) { if (err?.code !== 'declined') toast('This viewer can’t save files right now. Use copy svg.'); }
+    return;
+  }
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
-  a.download = `ink-loop-${new Date().toISOString().slice(0, 10)}.svg`;
+  a.download = filename;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   toast(framed ? 'If no file appeared, this viewer blocks downloads. Use copy svg.' : 'Saved ' + a.download);
