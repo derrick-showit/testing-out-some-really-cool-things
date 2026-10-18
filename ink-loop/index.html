@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+</head>
+<body>
+<title>Ink Loop</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a thin bar on top, one square sheet of paper filling the middle, a thin bar of controls below.
+   Brand tokens: swap --type and the --bg/--fg/--dim/--line values for the dewd.cool ones.
+   --paper and --ink stay white and black in every theme because they are the artwork itself. */
+:root {
+  --bg: #ededeb;
+  --fg: #0d0d0d;
+  --dim: #77776f;
+  --line: #cfcfca;
+  --paper: #ffffff;
+  --ink: #000000;
+  --type: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #121211; --fg: #ededeb; --dim: #8a8a83; --line: #2e2e2b; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #121211; --fg: #ededeb; --dim: #8a8a83; --line: #2e2e2b; color-scheme: dark; }
+
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 13px/1.4 var(--type);
+  overflow: hidden;
+  -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+button:focus-visible { outline: 1px solid var(--fg); outline-offset: 3px; }
+button:disabled { color: var(--dim); cursor: default; }
+
+.app {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  box-sizing: border-box;
+}
+.bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 24px; padding-block: 14px; }
+.grp { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; }
+
+.mark { font-weight: 500; letter-spacing: .02em; }
+.mark small { color: var(--dim); font-weight: 400; margin-left: 10px; }
+
+.t { position: relative; padding-block: 4px; }
+.t:hover:not(:disabled) { text-decoration: underline; text-underline-offset: 4px; }
+.tog { color: var(--dim); }
+.tog[aria-pressed="true"] { color: var(--fg); }
+.tog[aria-pressed="true"]::before { content: "● "; }
+.tog[aria-pressed="false"]::before { content: "○ "; }
+.tog:disabled::before { content: "○ "; }
+.sep { width: 1px; height: 14px; background: var(--line); }
+
+.nibs { gap: 4px; }
+.nib { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid transparent; }
+.nib i { display: block; border-radius: 50%; background: var(--fg); }
+.nib[aria-checked="true"] { border-color: var(--fg); }
+
+.stage { min-height: 0; display: grid; place-items: center; container-type: size; }
+.paper {
+  position: relative;
+  width: min(100cqw, 100cqh);
+  aspect-ratio: 1;
+  max-width: 100%;
+  background: var(--paper);
+  box-shadow: 0 0 0 1px var(--line);
+}
+#cv { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+#cv path { fill: var(--ink); }
+#pv { position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; background: var(--paper); }
+.tag {
+  position: absolute; left: 10px; top: 8px;
+  font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: #8a8a83; pointer-events: none;
+}
+
+.meta { color: var(--dim); font-variant-numeric: tabular-nums; }
+.meta b { color: var(--fg); font-weight: 500; }
+
+#toast {
+  position: fixed; left: 50%; bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  transform: translate(-50%, 8px); opacity: 0;
+  background: var(--fg); color: var(--bg);
+  padding: 7px 12px; max-width: calc(100% - 48px);
+  transition: opacity .2s, transform .2s; pointer-events: none;
+}
+#toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+@media (max-width: 560px) {
+  .bar.bottom { justify-content: flex-start; }
+  .mark small { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { #toast { transition: none; } }
+</style>
+
+<div class="app">
+  <header class="bar">
+    <div class="mark">ink loop<small>animated on-chain svg</small></div>
+    <div class="grp">
+      <button class="t" id="undo" title="Undo (Z)">undo</button>
+      <button class="t" id="redo" title="Redo (Shift+Z)">redo</button>
+      <button class="t" id="clear">clear</button>
+    </div>
+  </header>
+
+  <main class="stage">
+    <div class="paper">
+      <svg id="cv" viewBox="0 0 1000 1000" aria-label="Drawing sheet"></svg>
+      <img id="pv" hidden alt="Preview of the exported animated SVG">
+      <div class="tag" id="tag" hidden></div>
+    </div>
+  </main>
+
+  <footer class="bar bottom">
+    <div class="grp">
+      <div class="grp nibs" role="radiogroup" aria-label="Pen size">
+        <button class="nib" role="radio" data-n="0" aria-label="Fine pen" title="Fine ([)"><i style="width:4px;height:4px"></i></button>
+        <button class="nib" role="radio" data-n="1" aria-label="Medium pen" title="Medium"><i style="width:8px;height:8px"></i></button>
+        <button class="nib" role="radio" data-n="2" aria-label="Bold pen" title="Bold (])"><i style="width:14px;height:14px"></i></button>
+      </div>
+      <span class="sep"></span>
+      <button class="t tog" id="o-draw" aria-pressed="true" title="Strokes draw themselves in the order you drew them">draw-on</button>
+      <button class="t tog" id="o-loop" aria-pressed="true" title="Repeat forever. Starts on the finished frame so thumbnails are never blank">loop</button>
+      <button class="t tog" id="o-boil" aria-pressed="false" title="Hand-drawn line wobble">boil</button>
+      <button class="t" id="o-speed" title="Playback speed">1×</button>
+      <span class="sep"></span>
+      <button class="t" id="play" title="Preview the exported file (Space)">▶ preview</button>
+    </div>
+    <div class="grp">
+      <span class="meta" id="meta"></span>
+      <button class="t" id="dl">download .svg</button>
+      <button class="t" id="cp-svg">copy svg</button>
+      <button class="t" id="cp-uri" title="base64 data URI, ready for a tokenURI image field">copy data uri</button>
+      <button class="t" id="share">share link</button>
+    </div>
+  </footer>
+  <div id="toast" role="status" aria-live="polite"></div>
+</div>
+
+<script>
+(() => {
+const W = 1000;
+const NIBS = [6, 12, 24];               // full-pressure nib width, in canvas units
+const KEY = 'inkloop.v1';
+const NS = 'http://www.w3.org/2000/svg';
+
+const $ = id => document.getElementById(id);
+const cv = $('cv'), pv = $('pv'), tag = $('tag');
+
+let strokes = [];                        // {n: width, g: ms since previous stroke, p: [[x, y, pressure, ms]]}
+let redoStack = [];
+let nib = 1;
+let opts = { draw: true, loop: true, boil: false, speed: 1 };
+let isSample = false;
+let lastEnd = 0;
+
+/* ---------- geometry: raw pen points -> filled ink outline + centerline ---------- */
+
+const cache = new WeakMap();
+const r1 = v => Math.round(v * 10) / 10;
+function num(v) {
+  v = r1(v); if (Object.is(v, -0)) v = 0;
+  let s = String(v);
+  if (s.startsWith('0.')) s = s.slice(1); else if (s.startsWith('-0.')) s = '-' + s.slice(2);
+  return s;
+}
+function joinNums(list) {
+  let out = '', prev = '';
+  for (const s of list) {
+    if (out && !(s[0] === '-' || (s[0] === '.' && prev.includes('.')))) out += ' ';
+    out += s; prev = s;
+  }
+  return out;
+}
+// Relative path writer with 0.1 precision and no drift (deltas come from rounded absolutes).
+function pathWriter() {
+  let x = 0, y = 0, out = '', cmd = '', nums = [];
+  const flush = () => { if (cmd) out += cmd + joinNums(nums); cmd = ''; nums = []; };
+  const rel = (ax, ay) => { ax = r1(ax); ay = r1(ay); const d = [num(ax - x), num(ay - y)]; x = ax; y = ay; return d; };
+  return {
+    M(ax, ay) { flush(); x = r1(ax); y = r1(ay); out += 'M' + joinNums([num(x), num(y)]); },
+    q(c, e) { if (cmd !== 'q') { flush(); cmd = 'q'; } const ox = x, oy = y; const cx = r1(c[0]), cy = r1(c[1]); nums.push(num(cx - ox), num(cy - oy)); nums.push(...rel(e[0], e[1])); },
+    l(ax, ay) { if (cmd !== 'l') { flush(); cmd = 'l'; } nums.push(...rel(ax, ay)); },
+    raw(s) { flush(); out += s; },
+    done() { flush(); return out; }
+  };
+}
+
+function rdp(pts, eps) {
+  if (pts.length < 3) return pts;
+  const keep = new Uint8Array(pts.length); keep[0] = keep[pts.length - 1] = 1;
+  const stack = [[0, pts.length - 1]];
+  while (stack.length) {
+    const [a, b] = stack.pop();
+    const A = pts[a], B = pts[b];
+    const dx = B.x - A.x, dy = B.y - A.y, len = Math.hypot(dx, dy) || 1e-9;
+    let max = 0, idx = -1;
+    for (let i = a + 1; i < b; i++) {
+      const P = pts[i];
+      const d = Math.abs(dy * (P.x - A.x) - dx * (P.y - A.y)) / len + Math.abs(P.r - (A.r + (B.r - A.r) * (i - a) / (b - a))) * 0.5;
+      if (d > max) { max = d; idx = i; }
+    }
+    if (max > eps) { keep[idx] = 1; stack.push([a, idx], [idx, b]); }
+  }
+  return pts.filter((_, i) => keep[i]);
+}
+
+function geom(s) {
+  let g = cache.get(s); if (g) return g;
+  const R = s.n / 2, raw = s.p;
+  // streamline the input so a shaky hand still reads as ink
+  const pts = [];
+  let px = raw[0][0], py = raw[0][1];
+  for (const [x, y, p] of raw) {
+    px += (x - px) * 0.6; py += (y - py) * 0.6;
+    const last = pts[pts.length - 1];
+    if (last && Math.hypot(px - last.x, py - last.y) < 1.2) { last.p = Math.max(last.p, p); continue; }
+    pts.push({ x: px, y: py, p });
+  }
+  const lr = raw[raw.length - 1], lp = pts[pts.length - 1];
+  if (Math.hypot(lr[0] - lp.x, lr[1] - lp.y) > 0.6) pts.push({ x: lr[0], y: lr[1], p: lr[2] });
+
+  let L = 0; const d = [0];
+  for (let i = 1; i < pts.length; i++) { L += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y); d.push(L); }
+  const dur = raw[raw.length - 1][3];
+
+  if (pts.length < 2 || L < 2) {                      // a tap leaves a dot
+    const r = Math.max(1, R * (0.55 + 0.45 * raw[0][2]));
+    const x = r1(pts[0].x - r), y = r1(pts[0].y);
+    g = { dot: true, fill: `M${joinNums([num(x), num(y)])}a${joinNums([num(r), num(r), '0', '1', '0', num(2 * r), '0'])}a${joinNums([num(r), num(r), '0', '1', '0', num(-2 * r), '0'])}`, dur };
+    cache.set(s, g); return g;
+  }
+
+  const taper = Math.min(R * 3.2, L * 0.4);
+  const ease = t => 1 - (1 - t) * (1 - t);
+  pts.forEach((P, i) => {
+    const f = Math.min(ease(Math.min(1, d[i] / taper)), ease(Math.min(1, (L - d[i]) / (taper * 1.4))));
+    P.r = Math.max(0.45, R * (0.3 + 0.7 * P.p) * (0.18 + 0.82 * f));
+  });
+  const S = rdp(pts, 0.35);
+  const left = [], right = [];
+  let maxR = 0;
+  for (let i = 0; i < S.length; i++) {
+    const a = S[Math.max(0, i - 1)], b = S[Math.min(S.length - 1, i + 1)];
+    let dx = b.x - a.x, dy = b.y - a.y; const len = Math.hypot(dx, dy) || 1; dx /= len; dy /= len;
+    const P = S[i]; maxR = Math.max(maxR, P.r);
+    left.push([P.x - dy * P.r, P.y + dx * P.r]);
+    right.push([P.x + dy * P.r, P.y - dx * P.r]);
+  }
+  const tip = (P, Q, r) => { const dx = P.x - Q.x, dy = P.y - Q.y, l = Math.hypot(dx, dy) || 1; return [P.x + dx / l * r, P.y + dy / l * r]; };
+  const A = S[0], B = S[S.length - 1];
+  const poly = [tip(A, S[1], A.r), ...left, tip(B, S[S.length - 2], B.r), ...right.reverse()];
+
+  const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  const fw = pathWriter();
+  const n = poly.length, start = mid(poly[n - 1], poly[0]);
+  fw.M(start[0], start[1]);
+  for (let i = 0; i < n; i++) fw.q(poly[i], mid(poly[i], poly[(i + 1) % n]));
+  fw.raw('z');
+
+  const lw = pathWriter();
+  lw.M(S[0].x, S[0].y);
+  for (let i = 1; i < S.length; i++) lw.l(S[i].x, S[i].y);
+
+  g = { fill: fw.done(), line: lw.done(), w: Math.ceil(maxR * 2 + 4), dur };
+  cache.set(s, g); return g;
+}
+
+/* ---------- export ---------- */
+
+const k4 = v => String(Math.round(v * 1e4) / 1e4);
+function buildSVG(o = opts) {
+  const head = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${W}">`;
+  const bg = `<rect width="${W}" height="${W}" fill="#fff"/>`;
+  if (!strokes.length) return head + bg + '</svg>';
+  const G = strokes.map(geom);
+  const boilFx = o.boil ? `<filter id="b"><feTurbulence baseFrequency=".018" numOctaves="2" result="t"><animate attributeName="seed" values="1;2;3" dur=".39s" calcMode="discrete" repeatCount="indefinite"/></feTurbulence><feDisplacementMap in="SourceGraphic" in2="t" scale="5" xChannelSelector="R" yChannelSelector="G"/></filter>` : '';
+  const gOpen = o.boil ? '<g filter="url(#b)">' : '<g>';
+
+  if (!o.draw) {
+    const defs = boilFx ? `<defs>${boilFx}</defs>` : '';
+    return `${head}${bg}${defs}${gOpen}<path d="${G.map(g => g.fill).join('')}"/></g></svg>`;
+  }
+
+  // timeline: strokes play in drawing order at the speed they were drawn; long pauses are trimmed
+  const sp = o.speed;
+  let t = 0.3; const spans = [];
+  strokes.forEach((s, i) => {
+    if (i) t += Math.min(s.g, 600) / 1000 / sp;
+    const a = t; t += Math.max(0.12, G[i].dur / 1000) / sp;
+    spans.push([a, t]);
+  });
+  const hold = 2.4, fade = 0.5;
+  const T = o.loop ? t + hold + fade : t + 0.05;
+  const timing = o.loop ? ` dur="${k4(T)}s" begin="-${k4(t + 0.4)}s" repeatCount="indefinite"` : ` dur="${k4(T)}s" fill="freeze"`;
+
+  let masks = '', paths = '';
+  G.forEach((g, i) => {
+    const kt = `0;${k4(spans[i][0] / T)};${k4(spans[i][1] / T)};1`;
+    if (g.dot) {
+      paths += `<path d="${g.fill}" opacity="0"><animate attributeName="opacity" values="0;0;1;1" keyTimes="${kt}"${timing}/></path>`;
+    } else {
+      const id = 'm' + i.toString(36);
+      masks += `<mask id="${id}"><path class="m" d="${g.line}" stroke-width="${g.w}" pathLength="1"><animate attributeName="stroke-dashoffset" values="1.01;1.01;0;0" keyTimes="${kt}"${timing}/></path></mask>`;
+      paths += `<path d="${g.fill}" mask="url(#${id})"/>`;
+    }
+  });
+  const fadeAnim = o.loop ? `<animate attributeName="opacity" values="1;1;0" keyTimes="0;${k4((t + hold) / T)};1"${timing}/>` : '';
+  const style = masks ? '<style>.m{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1 2;stroke-dashoffset:1.01}</style>' : '';
+  return `${head}${style}${bg}<defs>${boilFx}${masks}</defs>${gOpen}${fadeAnim}${paths}</g></svg>`;
+}
+
+function b64(bytes) {
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+const dataURI = svg => 'data:image/svg+xml;base64,' + b64(new TextEncoder().encode(svg));
+
+/* ---------- save / share encoding ---------- */
+
+function serial() {
+  return { v: 1, o: opts, s: strokes.map(s => {
+    const flat = []; let px = 0, py = 0, pt = 0;
+    for (const [x, y, p, t] of s.p) {
+      const X = Math.round(x * 10), Y = Math.round(y * 10), Tm = Math.round(t);
+      flat.push(X - px, Y - py, Math.round(p * 100), Tm - pt); px = X; py = Y; pt = Tm;
+    }
+    return [s.n, Math.round(s.g), flat];
+  }) };
+}
+function deserial(d) {
+  if (!d || d.v !== 1 || !Array.isArray(d.s)) throw new Error('bad drawing');
+  const out = d.s.map(([n, g, f]) => {
+    const p = []; let x = 0, y = 0, t = 0;
+    for (let i = 0; i + 3 < f.length; i += 4) { x += f[i]; y += f[i + 1]; t += f[i + 3]; p.push([x / 10, y / 10, f[i + 2] / 100, t]); }
+    return { n: +n, g: +g, p };
+  }).filter(s => s.p.length);
+  return { strokes: out, opts: d.o };
+}
+const b64u = bytes => b64(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+function unb64u(s) { const bin = atob(s.replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(bin, c => c.charCodeAt(0)); }
+async function pack(obj) {
+  const bytes = new TextEncoder().encode(JSON.stringify(obj));
+  if ('CompressionStream' in window) {
+    const z = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer());
+    return 'z' + b64u(z);
+  }
+  return 'j' + b64u(bytes);
+}
+async function unpack(code) {
+  let bytes = unb64u(code.slice(1));
+  if (code[0] === 'z') bytes = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+/* ---------- editor ---------- */
+
+function pathEl(s) {
+  const el = document.createElementNS(NS, 'path');
+  el.setAttribute('d', geom(s).fill);
+  return el;
+}
+function renderAll() {
+  cv.replaceChildren(...strokes.map(pathEl));
+  changed();
+}
+
+let cur = null, curEl = null, t0 = 0, lastPt = null, sim = 0.5;
+function toCanvas(e) {
+  const r = cv.getBoundingClientRect();
+  return [(e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * W];
+}
+function pressureOf(e, x, y, t) {
+  if (e.pointerType === 'pen' && e.pressure > 0) return Math.min(1, e.pressure * 1.15);
+  // mouse and finger: faster strokes run thinner, like a real nib
+  if (lastPt) {
+    const v = Math.hypot(x - lastPt[0], y - lastPt[1]) / Math.max(1, t - lastPt[3]);
+    sim += ((1 - Math.min(1, v / 2.6) * 0.65) - sim) * 0.25;
+  }
+  return sim;
+}
+function addPoint(e) {
+  const [x, y] = toCanvas(e), t = e.timeStamp - t0;
+  const p = pressureOf(e, x, y, t);
+  lastPt = [x, y, p, Math.max(0, t)];
+  cur.p.push(lastPt);
+}
+cv.addEventListener('pointerdown', e => {
+  if (e.button > 0 || cur) return;
+  if (isSample) { strokes = []; redoStack = []; cv.replaceChildren(); isSample = false; }
+  cv.setPointerCapture(e.pointerId);
+  t0 = e.timeStamp; lastPt = null; sim = 0.62;
+  cur = { n: NIBS[nib], g: strokes.length ? Math.max(0, performance.now() - lastEnd) : 0, p: [] };
+  addPoint(e);
+  curEl = pathEl(cur); cv.appendChild(curEl);
+  e.preventDefault();
+});
+cv.addEventListener('pointermove', e => {
+  if (!cur) return;
+  const list = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+  for (const ev of (list.length ? list : [e])) addPoint(ev);
+  cache.delete(cur);
+  curEl.setAttribute('d', geom(cur).fill);
+});
+function endStroke() {
+  if (!cur) return;
+  cache.delete(cur);
+  curEl.setAttribute('d', geom(cur).fill);
+  strokes.push(cur); redoStack = [];
+  cur = null; curEl = null; lastEnd = performance.now();
+  changed();
+}
+cv.addEventListener('pointerup', endStroke);
+cv.addEventListener('pointercancel', endStroke);
+
+function undo() { if (!strokes.length) return; redoStack.push(strokes.pop()); cv.lastChild?.remove(); changed(); }
+function redo() { if (!redoStack.length) return; const s = redoStack.pop(); strokes.push(s); cv.appendChild(pathEl(s)); changed(); }
+
+/* ---------- state sync ---------- */
+
+let svgCache = '', shareCode = '', pending = 0, saveTimer = 0;
+function changed() {
+  $('undo').disabled = !strokes.length;
+  $('redo').disabled = !redoStack.length;
+  $('clear').disabled = !strokes.length;
+  tag.hidden = !isSample; tag.textContent = 'sample · draw anywhere to start fresh';
+  cancelAnimationFrame(pending);
+  pending = requestAnimationFrame(() => {
+    svgCache = buildSVG();
+    const bytes = new Blob([svgCache]).size;
+    $('meta').innerHTML = `<b>${bytes < 1024 ? bytes + ' B' : (bytes / 1024).toFixed(1) + ' KB'}</b> · ${strokes.length} stroke${strokes.length === 1 ? '' : 's'}`;
+    if (!pv.hidden) showPreview();
+  });
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    const data = serial();
+    try { shareCode = await pack(data); } catch { shareCode = ''; }
+    if (!isSample) { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch {} }
+  }, 250);
+}
+function syncOpts() {
+  $('o-draw').setAttribute('aria-pressed', opts.draw);
+  $('o-loop').setAttribute('aria-pressed', opts.draw && opts.loop);
+  $('o-loop').disabled = !opts.draw;
+  $('o-boil').setAttribute('aria-pressed', opts.boil);
+  $('o-speed').textContent = (opts.speed === 0.5 ? '½' : opts.speed) + '×';
+  $('o-speed').disabled = !opts.draw;
+  document.querySelectorAll('.nib').forEach(b => b.setAttribute('aria-checked', +b.dataset.n === nib));
+  changed();
+}
+
+/* ---------- preview ---------- */
+
+let pvURL = '';
+function showPreview() {
+  if (pvURL) URL.revokeObjectURL(pvURL);
+  pvURL = URL.createObjectURL(new Blob([svgCache || buildSVG()], { type: 'image/svg+xml' }));
+  pv.src = pvURL; pv.hidden = false;
+  $('play').textContent = '■ stop';
+}
+function togglePreview() {
+  if (pv.hidden) { svgCache = buildSVG(); showPreview(); }
+  else { pv.hidden = true; pv.removeAttribute('src'); $('play').textContent = '▶ preview'; }
+}
+
+/* ---------- toast + clipboard ---------- */
+
+let toastTimer = 0;
+function toast(msg) {
+  const el = $('toast'); el.textContent = msg; el.classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('on'), 2400);
+}
+function copy(text, ok) {
+  const fallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(ta); ta.select();
+    let done = false; try { done = document.execCommand('copy'); } catch {}
+    ta.remove(); toast(done ? ok : 'Your browser blocked copying. Try download instead.');
+  };
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(() => toast(ok), fallback);
+  else fallback();
+}
+const framed = (() => { try { return window.top !== window.self; } catch { return true; } })();
+function shareURL() { return location.href.split('#')[0] + '#d=' + shareCode; }
+
+/* ---------- controls ---------- */
+
+$('undo').onclick = undo;
+$('redo').onclick = redo;
+let clearArm = 0;
+$('clear').onclick = () => {
+  if (!clearArm) { $('clear').textContent = 'clear all?'; clearArm = setTimeout(() => { clearArm = 0; $('clear').textContent = 'clear'; }, 2500); return; }
+  clearTimeout(clearArm); clearArm = 0; $('clear').textContent = 'clear';
+  redoStack = strokes.slice().reverse(); strokes = []; isSample = false; cv.replaceChildren(); changed();
+  toast('Cleared. Press redo to bring it back.');
+};
+document.querySelectorAll('.nib').forEach(b => b.onclick = () => { nib = +b.dataset.n; syncOpts(); });
+$('o-draw').onclick = () => { opts.draw = !opts.draw; syncOpts(); };
+$('o-loop').onclick = () => { opts.loop = !opts.loop; syncOpts(); };
+$('o-boil').onclick = () => { opts.boil = !opts.boil; syncOpts(); };
+$('o-speed').onclick = () => { const s = [0.5, 1, 2, 3]; opts.speed = s[(s.indexOf(opts.speed) + 1) % s.length]; syncOpts(); };
+$('play').onclick = togglePreview;
+pv.onclick = togglePreview;
+
+$('dl').onclick = () => {
+  const svg = buildSVG();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+  a.download = `ink-loop-${new Date().toISOString().slice(0, 10)}.svg`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  toast(framed ? 'If no file appeared, this viewer blocks downloads. Use copy svg.' : 'Saved ' + a.download);
+};
+$('cp-svg').onclick = () => copy(buildSVG(), 'SVG copied');
+$('cp-uri').onclick = () => copy(dataURI(buildSVG()), 'Data URI copied');
+$('share').onclick = () => {
+  if (!strokes.length) { toast('Draw something first.'); return; }
+  if (!shareCode) { toast('Still packing the link. Try again in a moment.'); return; }
+  const url = shareURL();
+  if (!framed && navigator.share) {
+    const file = new File([buildSVG()], 'ink-loop.svg', { type: 'image/svg+xml' });
+    const data = navigator.canShare?.({ files: [file] }) ? { files: [file], url } : { url };
+    navigator.share(data).catch(err => { if (err.name !== 'AbortError') copy(url, 'Link copied'); });
+    return;
+  }
+  copy(url, 'Link copied. It opens this drawing in Ink Loop.');
+};
+
+addEventListener('keydown', e => {
+  if (e.target.closest?.('input, textarea')) return;
+  const k = e.key.toLowerCase();
+  if (k === 'z' && !e.altKey) { e.preventDefault(); e.shiftKey ? redo() : undo(); }
+  else if (k === 'y' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); redo(); }
+  else if (k === '[') { nib = Math.max(0, nib - 1); syncOpts(); }
+  else if (k === ']') { nib = Math.min(2, nib + 1); syncOpts(); }
+  else if (k === ' ' && !e.target.closest?.('button')) { e.preventDefault(); togglePreview(); }
+});
+
+/* ---------- sample: a few loops of ink, so the first view shows what the tool makes ---------- */
+
+function sample() {
+  const out = [];
+  const mk = (n, g, fn, steps, ms) => {
+    const p = [];
+    for (let i = 0; i <= steps; i++) { const [x, y, pr] = fn(i / steps); p.push([x + Math.sin(i * 1.7) * 0.6, y + Math.cos(i * 2.3) * 0.6, pr, i * ms]); }
+    out.push({ n, g, p });
+  };
+  // the loop-de-loop
+  mk(14, 0, u => { const t = u * Math.PI * 9; return [170 + 72 * t / Math.PI * 0.95 - 60 * Math.sin(t), 430 - 95 * Math.cos(t) + 18 * Math.sin(u * 3), 0.55 + 0.4 * Math.sin(u * 7)]; }, 260, 9);
+  // the underline
+  mk(10, 350, u => [190 + 640 * u, 640 + 14 * Math.sin(u * 5.5), 0.4 + 0.6 * Math.sin(u * Math.PI)], 90, 7);
+  // a dot of punctuation
+  mk(24, 220, () => [840, 612, 0.9], 1, 40);
+  // a small spiral, bottom left
+  mk(6, 400, u => { const a = u * Math.PI * 6, r = 6 + 64 * u; return [280 + r * Math.cos(a), 800 + r * Math.sin(a), 0.5 + 0.5 * u]; }, 160, 8);
+  return out;
+}
+
+/* ---------- boot ---------- */
+
+async function boot() {
+  let loaded = null;
+  const m = location.hash.match(/^#d=([zj][\w-]+)/);
+  if (m) {
+    try { loaded = deserial(await unpack(m[1])); }
+    catch { toast('That share link is damaged, so it opened your last drawing instead.'); }
+    history.replaceState(null, '', location.href.split('#')[0]);
+  }
+  if (!loaded) { try { const raw = localStorage.getItem(KEY); if (raw) loaded = deserial(JSON.parse(raw)); } catch {} }
+  if (loaded && loaded.strokes.length) {
+    strokes = loaded.strokes;
+    if (loaded.opts) Object.assign(opts, loaded.opts);
+  } else {
+    strokes = sample(); isSample = true;
+  }
+  renderAll();
+  syncOpts();
+}
+boot();
+})();
+</script>
+</body>
+</html>
