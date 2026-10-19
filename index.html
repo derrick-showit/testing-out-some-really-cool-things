@@ -72,7 +72,30 @@ button:focus-visible, .fr:focus-visible { outline: 2px dashed var(--accent); out
 .sw.on::after { content: ""; position: absolute; left: 50%; bottom: -8px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--chalk); }
 
 /* the page */
-.desk { position: relative; min-width: 0; min-height: 0; overflow: hidden; display: grid; place-items: center; padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.desk { position: relative; min-width: 0; min-height: 0; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.stagebox { min-width: 0; min-height: 0; display: grid; place-items: center; }
+
+/* the director's cue: a typed strip of paper under the page */
+.direct {
+  justify-self: center; width: var(--pw, 640px); max-width: 100%; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 4px; padding: 4px 4px 4px 14px;
+  background: var(--paper); color: var(--ink);
+  box-shadow: 0 1px 0 rgba(0,0,0,.15), 0 10px 18px -12px rgba(0,0,0,.55);
+  clip-path: polygon(0 6%, 2% 0, 30% 4%, 62% 0, 100% 5%, 99.4% 50%, 100% 94%, 70% 100%, 35% 95%, 3% 100%, 0 92%, .5% 50%);
+}
+.direct[hidden] { display: none; }
+.direct input {
+  flex: 1; min-width: 0; height: 36px; border: 0; background: transparent; color: var(--ink);
+  font: inherit; font-size: 15px; letter-spacing: .02em; outline: none;
+}
+.direct input::placeholder { color: rgba(31,29,26,.42); }
+.direct input:disabled { color: rgba(31,29,26,.5); }
+.direct .status { flex: none; font-size: 12px; color: rgba(31,29,26,.55); letter-spacing: .04em; white-space: nowrap; }
+.direct button { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; color: var(--ink); }
+.direct button:hover { background: rgba(31,29,26,.08); }
+.direct button svg { width: 20px; height: 20px; }
+.direct:focus-within { box-shadow: 0 1px 0 rgba(0,0,0,.15), 0 10px 18px -12px rgba(0,0,0,.55), inset 0 -2px 0 var(--accent); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .page { position: relative; width: 640px; height: 480px; box-shadow: 0 1px 0 rgba(0,0,0,.15), 0 22px 36px -16px rgba(0,0,0,.55); }
 #stage { display: block; width: 100%; height: 100%; touch-action: none; cursor: default; }
 #stage .pc { cursor: grab; }
@@ -137,7 +160,7 @@ body.dragging #stage, body.dragging #stage .pc { cursor: grabbing; }
 .add:hover { color: var(--chalk); border-color: rgba(239,235,225,.7); }
 
 .toast {
-  position: fixed; left: 50%; bottom: 128px; z-index: 9; transform: translateX(-50%) rotate(-1deg);
+  position: fixed; left: 50%; top: calc(14px + env(safe-area-inset-top, 0px)); z-index: 9; max-width: calc(100vw - 48px); transform: translateX(-50%) rotate(-1deg);
   padding: 7px 14px 6px; background: var(--tape); color: var(--ink); font-size: 13px; letter-spacing: .04em;
   font-variant-numeric: tabular-nums; pointer-events: none;
 }
@@ -156,10 +179,10 @@ body.playing .tray { opacity: .25; pointer-events: none; }
   .help-btn { top: 8px; right: 8px; }
   .note { top: 44px; right: 8px; }
   .desk { overflow: visible; }
+  .direct input { font-size: 16px; }
   .strip { flex-wrap: wrap; gap: 10px; }
   .controls { width: 100%; justify-content: center; }
   .fr { width: 72px; height: 54px; }
-  .toast { bottom: 190px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .shape, .sw, .fr, .tray { transition: none; }
@@ -173,6 +196,7 @@ body.playing .tray { opacity: .25; pointer-events: none; }
   </aside>
 
   <main class="desk" id="desk">
+    <div class="stagebox" id="stagebox">
     <div class="page" id="page">
       <div class="tape" id="counter">01 / 01</div>
       <svg id="stage" viewBox="0 0 800 600" aria-label="Animation page">
@@ -202,10 +226,18 @@ body.playing .tray { opacity: .25; pointer-events: none; }
         </g>
       </svg>
     </div>
+    </div>
+    <form class="direct" id="direct" hidden>
+      <label for="cue" class="sr">Direct the animation</label>
+      <input id="cue" type="text" autocomplete="off" maxlength="400" placeholder="Direct the scene: the sun sets and the square takes a nap">
+      <span class="status" id="cueStatus" hidden></span>
+      <button type="submit" id="cueBtn" aria-label="Animate it"></button>
+    </form>
     <button class="help-btn" id="helpBtn" aria-label="How it works" aria-expanded="false">?</button>
     <div class="note" id="note" hidden>
       <p>Pick a shape to cut it out. Drag it into place. Pull the dot to turn or resize it.</p>
       <p>Press + to copy the frame, nudge the pieces a little, and repeat. Drag a piece off the page to throw it away.</p>
+      <p class="cue-tip" hidden>Or type what should happen in the strip under the page, and Claude cuts and moves the pieces for you. It rewrites the film, so undo takes you back.</p>
       <dl>
         <dt>space</dt><dd>play / stop</dd>
         <dt>enter</dt><dd>next frame (as a copy)</dd>
@@ -675,6 +707,7 @@ $('clearBtn').addEventListener('click', () => {
 /* ---------- keyboard ---------- */
 document.addEventListener('keydown', e => {
   const mod = e.metaKey || e.ctrlKey, k = e.key;
+  if (e.target.matches && e.target.matches('input, textarea')) { if (k === 'Escape') e.target.blur(); return; }
   if (mod && k.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
   if (mod && k.toLowerCase() === 'y') { e.preventDefault(); redo(); return; }
   if (mod || e.altKey) return;
@@ -835,14 +868,165 @@ async function exportGif() {
 $('gifBtn').addEventListener('click', exportGif);
 
 /* ---------- fit the page to the desk ---------- */
-const desk = $('desk'), pageEl = $('page');
+const desk = $('desk'), stagebox = $('stagebox'), pageEl = $('page');
 function fit() {
-  const r = desk.getBoundingClientRect(), cs = getComputedStyle(desk);
-  let w = r.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 16, h = r.height - 40;
+  const r = stagebox.getBoundingClientRect();
+  let w = r.width - 16, h = r.height - 40;
   if (w / h > 4 / 3) w = h * 4 / 3; else h = w * 3 / 4;
-  pageEl.style.width = Math.max(120, w) + 'px'; pageEl.style.height = Math.max(90, h) + 'px';
+  w = Math.max(120, w); h = Math.max(90, h);
+  pageEl.style.width = w + 'px'; pageEl.style.height = h + 'px';
+  desk.style.setProperty('--pw', w + 'px');
 }
-new ResizeObserver(fit).observe(desk);
+new ResizeObserver(fit).observe(stagebox);
+
+/* ---------- directing with words ---------- */
+const COLOR_NAMES = { tomato: '#e2492f', mustard: '#f2b134', cobalt: '#2e5bba', green: '#2f8f5b', pink: '#f19cb4', black: '#1f1d1a', white: '#f7f3ea' };
+const HEX_NAME = Object.fromEntries(Object.entries(COLOR_NAMES).map(([n, h]) => [h, n]));
+const ICON_CUT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="6" cy="6.5" r="3"/><circle cx="6" cy="17.5" r="3"/><path d="M8.5 8.2 20 17M8.5 15.8 20 7"/></svg>';
+const ICON_HALT = '<svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" fill="currentColor"/></svg>';
+const r1 = n => Math.round(n * 10) / 10;
+const num = (v, d) => (typeof v === 'number' && isFinite(v) ? v : d);
+function hexToRgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+function snapColor(c) {
+  if (typeof c !== 'string') return COLORS[0];
+  const k = c.trim().toLowerCase();
+  if (COLOR_NAMES[k]) return COLOR_NAMES[k];
+  if (/^#[0-9a-f]{6}$/.test(k)) {
+    const [r, g, b] = hexToRgb(k); let best = COLORS[0], bd = 1e9;
+    for (const h of COLORS) { const [R, G, B] = hexToRgb(h), d = (R - r) ** 2 + (G - g) ** 2 + (B - b) ** 2; if (d < bd) { bd = d; best = h; } }
+    return best;
+  }
+  return COLORS[0];
+}
+function cuePrompt(cue) {
+  const film = S.frames.map(f => f.pieces.map(p => ({ id: p.id, shape: p.shape, color: HEX_NAME[p.color] || 'tomato', x: r1(p.x), y: r1(p.y), r: r1(p.r), s: Math.round(p.s * 100) / 100 })));
+  return `You direct a paper cutout stop-motion film. Turn the director's note into the film's pieces and motion.
+
+THE PAGE: 800 wide by 600 tall. x grows to the right, y grows downward, (0,0) is the top-left corner. The page is plain paper; there is no background object.
+
+PIECES are paper cutouts. Each has a shape, a color, a center (x, y), a rotation r in degrees (clockwise) and a scale s (1 = a 100 by 100 piece; usual range 0.15 to 4). Later pieces in the list lie on top of earlier ones.
+Shapes at r = 0:
+- "square": 100 by 100.
+- "quarter": a quarter circle of radius 100. Its right-angle corner is at the bottom-left and the curved edge bulges toward the top-right. r = 90 puts the corner top-left, 180 top-right, 270 bottom-right.
+- "half": a half circle 100 wide and 50 tall, flat side down, dome up.
+- "circle": diameter 100.
+- "triangle": 100 by 100, pointing up.
+Build bigger things from several pieces (a house = square + triangle roof; a sun = circle; hills = big half circles at the bottom edge, partly off the page).
+Colors (use these names only): tomato, mustard, cobalt, green, pink, black, white.
+
+TIMING: the film plays at fps frames per second (6, 8 or 12). Typical films are 8 to 36 frames. Hand-made stop motion moves in small steps; favor clear arcs, anticipation and a little overshoot over perfectly mechanical motion.
+
+THE CURRENT FILM (fps ${S.fps}, ${S.frames.length} frames; each inner list is one frame, bottom piece first):
+${JSON.stringify(film)}
+
+THE DIRECTOR'S NOTE:
+${cue}
+
+Reply with only one JSON object, no other text, in this shape:
+{"say": "one short sentence telling the director what you did", "fps": 8, "frames": 24, "pieces": [ ... ]}
+Each entry in "pieces" is one of:
+- Keep a current piece exactly as it moves now: {"id": 3, "keep": true}
+- A new or re-animated piece: {"id": 3, "shape": "square", "color": "tomato", "from": 0, "to": 23, "ease": "inout", "keys": [{"f": 0, "x": 120, "y": 430, "r": 0, "s": 0.6}, {"f": 12, "x": 400, "y": 180, "r": 180}, {"f": 23, "x": 680, "y": 430, "r": 360}]}
+  - "id": reuse a current id when it is the same piece; leave it out for a new piece.
+  - "keys": keyframes by frame number f (0-based). The page fills in the frames between them. A key may leave out x, y, r or s to keep the previous value. For a spin, keep counting degrees past 360.
+  - "from"/"to": the frames where the piece is on the page (optional, default the whole film).
+  - "ease": "inout" (default, eases into and out of each key), "linear", or "hold" (jumps at each key, for snappy moves).
+Pieces you leave out of "pieces" are removed. Keep everything the note does not ask to change. List pieces bottom to top.`;
+}
+function lerp(a, b, t) { return a + (b - a) * t; }
+function easeT(t, e) { return e === 'linear' ? t : e === 'hold' ? 0 : t * t * (3 - 2 * t); }
+function buildFilm(plan) {
+  if (!plan || typeof plan !== 'object' || !Array.isArray(plan.pieces)) throw new Error('shape');
+  const n = Math.round(Math.max(1, Math.min(96, num(plan.frames, S.frames.length))));
+  const old = S.frames, oldIds = new Set(old.flatMap(f => f.pieces.map(p => p.id)));
+  const frames = Array.from({ length: n }, () => ({ pieces: [] }));
+  const seedOf = id => { for (const f of old) { const p = f.pieces.find(q => q.id === id); if (p) return p.seed; } return null; };
+  for (const raw of plan.pieces.slice(0, 40)) {
+    if (!raw || typeof raw !== 'object') continue;
+    const known = oldIds.has(raw.id);
+    if (raw.keep && known) {
+      for (let f = 0; f < n; f++) {
+        const p = old[Math.min(f, old.length - 1)].pieces.find(q => q.id === raw.id);
+        if (p) frames[f].pieces.push({ ...p });
+      }
+      continue;
+    }
+    const shape = SHAPES.includes(raw.shape) ? raw.shape : 'square';
+    const id = known ? raw.id : uid++;
+    const seed = (known && seedOf(id)) || ((Math.random() * 1e9) | 0);
+    const color = snapColor(raw.color), ease = raw.ease;
+    let keys = (Array.isArray(raw.keys) ? raw.keys : []).filter(k => k && typeof k === 'object').map(k => ({ ...k, f: Math.round(num(k.f, 0)) })).sort((a, b) => a.f - b.f);
+    if (!keys.length) keys = [{ f: 0 }];
+    let prev = { x: W / 2, y: H / 2, r: 0, s: 1 };
+    keys = keys.map(k => (prev = { f: k.f, x: num(k.x, prev.x), y: num(k.y, prev.y), r: num(k.r, prev.r), s: Math.max(.08, Math.min(6, num(k.s, prev.s))) }));
+    const from = Math.max(0, Math.round(num(raw.from, 0))), to = Math.min(n - 1, Math.round(num(raw.to, n - 1)));
+    for (let f = from; f <= to; f++) {
+      let a = keys[0], b = keys[keys.length - 1], t = 0;
+      if (f <= a.f) b = a;
+      else if (f >= b.f) a = b;
+      else { for (let i = 0; i < keys.length - 1; i++) if (f >= keys[i].f && f <= keys[i + 1].f) { a = keys[i]; b = keys[i + 1]; break; } t = b.f === a.f ? 1 : easeT((f - a.f) / (b.f - a.f), ease); }
+      frames[f].pieces.push({ id, shape, color, seed, x: r1(lerp(a.x, b.x, t)), y: r1(lerp(a.y, b.y, t)), r: r1(lerp(a.r, b.r, t)), s: Math.round(lerp(a.s, b.s, t) * 1000) / 1000 });
+    }
+  }
+  const fps = [6, 8, 12].reduce((best, v) => Math.abs(v - num(plan.fps, S.fps)) < Math.abs(best - num(plan.fps, S.fps)) ? v : best, 8);
+  return { frames, fps };
+}
+const cueForm = $('direct'), cueInput = $('cue'), cueBtn = $('cueBtn'), cueStatus = $('cueStatus');
+let sampleFn = null, cueCtl = null;
+cueBtn.innerHTML = ICON_CUT;
+if (matchMedia('(max-width: 640px)').matches) cueInput.placeholder = 'Direct the scene…';
+function cueIdle(msg) {
+  cueCtl = null; cueInput.disabled = false; cueBtn.innerHTML = ICON_CUT; cueBtn.setAttribute('aria-label', 'Animate it');
+  cueStatus.hidden = !msg; cueStatus.textContent = msg || '';
+}
+function hideCue() { cueForm.hidden = true; document.querySelector('.cue-tip').hidden = true; requestAnimationFrame(fit); }
+const CUE_ERRORS = {
+  rate_limited: 'Too many requests. Try again in a minute.',
+  session_expired: 'Sign in to Claude again, then retry.',
+  refused: 'Claude passed on that one. Try other words.',
+  invalid_json: 'That came back garbled. Try again.',
+  empty_completion: 'Nothing came back. Try other words.',
+  prompt_too_large: 'This film is too long to send. Try a shorter one.',
+};
+cueForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  if (cueCtl) { cueCtl.abort(); return; }
+  const cue = cueInput.value.trim();
+  if (!cue || !sampleFn) return;
+  if (playing) stop();
+  cueCtl = new AbortController();
+  const ctl = cueCtl;
+  cueInput.disabled = true; cueBtn.innerHTML = ICON_HALT; cueBtn.setAttribute('aria-label', 'Stop');
+  cueStatus.hidden = false; cueStatus.textContent = 'thinking…';
+  try {
+    const plan = await sampleFn.json(cuePrompt(cue), {
+      signal: ctl.signal, cache: false,
+      onText: ({ text }) => { cueStatus.textContent = 'cutting… ' + Math.min(99, Math.round(text.length / 40)) + '%'; },
+    });
+    const built = buildFilm(plan);
+    const before = snapshot();
+    S.frames = built.frames.some(f => f.pieces.length) ? built.frames : S.frames;
+    S.fps = built.fps; $('fpsBtn').textContent = S.fps + ' fps';
+    S.cur = 0; sel = null;
+    commit(before); renderStage(); renderStrip();
+    cueInput.value = '';
+    cueIdle();
+    toast(typeof plan.say === 'string' && plan.say.trim() ? plan.say.trim().slice(0, 140) : 'Done');
+    play();
+  } catch (err) {
+    const code = err && err.code;
+    if (['not_granted', 'sampling_disabled', 'not_declared', 'capability_disabled', 'capability_removed'].includes(code)) { cueIdle(); hideCue(); toast('Directing with words is off for this page'); return; }
+    if (code === 'cancelled') { cueIdle(); return; }
+    cueIdle(CUE_ERRORS[code] || (err instanceof Error ? 'That plan didn’t fit the page. Try again.' : 'Something went wrong. Try again.'));
+  }
+});
+cueInput.addEventListener('input', () => { if (!cueCtl && !cueStatus.hidden) cueIdle(); });
+if (window.claude && window.claude.use) {
+  window.claude.use('sample').then(fn => {
+    if (!fn) return;
+    sampleFn = fn; cueForm.hidden = false; document.querySelector('.cue-tip').hidden = false; requestAnimationFrame(fit);
+  }).catch(() => {});
+}
 
 /* ---------- start ---------- */
 if (!load()) S.frames = sampleFilm();
@@ -851,7 +1035,7 @@ $('fpsBtn').textContent = S.fps + ' fps';
 $('onionBtn').classList.toggle('on', S.onion); $('onionBtn').setAttribute('aria-pressed', S.onion);
 $('playBtn').innerHTML = ICON_PLAY;
 syncTray(); syncUndo(); fit(); renderStage(); renderStrip();
-window.__cel = { S, encodeGif, buildPalette, quantize, drawFrame };
+window.__cel = { S, encodeGif, buildPalette, quantize, drawFrame, buildFilm };
 })();
 </script>
 
