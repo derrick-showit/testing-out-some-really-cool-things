@@ -16,7 +16,7 @@
  * Usage:
  *   <div data-boil="smiley"></div>
  *   <div data-boil="palette"></div>
- *   <script src="boil.js"></script>
+ *   ...then load this file once with a script tag (src="boil.js").
  */
 (function () {
   "use strict";
