@@ -1,32 +1,27 @@
 /*
- * Self-Healing boil animations
+ * Self-Healing boil icons
  *
- * Stop-motion "boil" cel animations built from the 19 cut-paper pieces in the
- * intro screen on self-healing.art, driven the same way the intro is:
- *   - each piece is normalised to 150 units tall and centred on its anchor,
- *     and every piece stays that one size: pictures are made only by
- *     placing, overlapping and turning pieces
- *   - every piece sits at translate(x y) rotate(r) scale(s)
- *   - 10 jitter frames are pre-rolled with the same seeded RNG (1234):
+ * Simple stop-motion "boil" icons built from the 19 cut-paper pieces in the
+ * intro screen on self-healing.art, in the manner of the intro's heart:
+ *   - every piece keeps the intro's one size (150 units tall, scale 1)
+ *   - pieces sit on the heart's grid, 140 units apart, so neighbours
+ *     overlap a little like pasted paper
+ *   - each icon uses only the pieces it needs, as the heart does
+ *   - 10 jitter frames are pre-rolled with the intro's seeded RNG (1234):
  *     +/-4 units of shift and +/-2.5 degrees of turn per piece
  *   - the frames are stepped at 7 fps, so the pieces "boil" like re-shot cels
- *   - pieces start in the intro's face and ease (cubic in-out, 1s, after a
- *     1.2s hold) into the new picture, exactly like the intro's face-to-heart;
- *     pieces a picture doesn't need fade out under it, as in the intro
+ *
+ * There is no transition: an icon is drawn in place and boils from the start.
  *
  * Usage:
  *   <div data-boil="smiley"></div>
  *   <div data-boil="palette"></div>
  *   <script src="boil.js"></script>
- *
- * Options (data attributes):
- *   data-boil-from="none"   skip the face-to-picture assembly, just boil
  */
 (function () {
   "use strict";
 
-  // The intro's pieces, verbatim: path, natural size, fill, and their spot in
-  // the intro face as [x, y, rotation, scale].
+  // The intro's pieces, verbatim: path, natural size and fill.
   var PIECES = [
     /*  0 */ {d:"M0,118.89l22.84,3.87,97.05-3.87-1.22-29.77L121.49.37C81.24-.75.73,1.04.73,1.04l-.73,117.86Z",w:121.49,h:122.76,fill:"#a83c44",face:[612,734,0,1]},
     /*  1 */ {d:"M8.16 0 0 104.42 117.44 104.42 111.32 74.6 96.64 44.85 73.81 22.84 37.11 6.52 8.16 0Z",w:117.44,h:104.42,fill:"#6d8566",face:[752,1005,0,0.85]},
@@ -49,87 +44,42 @@
     /* 18 */ {d:"M0 0 0 89.14 0 122.46 59.13 122.46 106.09 122.46 106.09 65.73 106.09 15.76 106.09 .9 0 0Z",w:106.09,h:122.46,fill:"#64843f",face:[614,1003,0,1]}
   ];
 
-  // Every piece keeps one size, the intro's own: 150 units tall at scale 1.
-  // Pictures are built only by placing, overlapping and turning pieces.
-  var SIZE = 1;
+  // The heart's grid: cells 140 units apart, pieces 150 tall.
+  var STEP = 140;
 
-  // Place pieces around an ellipse, each turned so its top edge faces out.
-  // Each item is [piece, angle, extraTurn?].
-  function ring(cx, cy, rx, ry, items) {
-    return items.map(function (it) {
-      var a = (it[1] * Math.PI) / 180;
-      return [it[0], cx + rx * Math.cos(a), cy + ry * Math.sin(a), it[1] + 90 + (it[2] || 0)];
-    });
+  // Place pieces by grid cell. Each item is [piece, row, column, rotation?].
+  // Rows and columns can be fractional to sit between cells.
+  function grid(items) {
+    return items.map(function (it) { return [it[0], it[2] * STEP, it[1] * STEP, it[3] || 0]; });
   }
 
-  // Place pieces along an arc, each turned so its bottom edge faces out
-  // (used for the grin). Each item is [piece, angle, extraTurn?].
-  function smile(cx, cy, r, items) {
-    return items.map(function (it) {
-      var a = (it[1] * Math.PI) / 180;
-      return [it[0], cx + r * Math.cos(a), cy + r * Math.sin(a), it[1] - 90 + (it[2] || 0)];
-    });
-  }
-
-  // Each layout is a draw-ordered list of [piece, x, y, rotation], in the same
-  // coordinate space as the intro face (centre ~ 545, 675).
-  var CX = 545, CY = 675;
-  // Turn a whole layout around a point, baking the turn into each piece.
-  function tilt(layout, deg, cx, cy) {
-    var a = (deg * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a);
-    return layout.map(function (p) {
-      var dx = p[1] - cx, dy = p[2] - cy;
-      return [p[0], cx + dx * c - dy * s, cy + dx * s + dy * c, p[3] + deg, p[4]];
-    });
-  }
-
-  function at(cx, cy, items) {
-    return items.map(function (it) { return [it[0], cx + it[1], cy + it[2], it[3] || 0, it[4]]; });
-  }
-
-  var LAYOUTS = {
-    // Built like the intro face: a rough grid of full-size pieces, with the
-    // features as cells in the grid.
-    smiley: at(CX, CY, [
-      // forehead: cut corner, dome, curved corner
-      [4, -175, -205, 0], [14, 0, -215, 0], [17, 175, -205, 0],
-      // eye row and mouth-corner row, greens at the edges and between
-      [7, -268, -70, 0], [9, 0, -70, 0], [2, 268, -70, 0],
-      [3, -262, 72, 0], [10, 0, 66, 0], [18, 262, 72, 0],
-      // chin: rounded corners turned down
-      [5, -165, 205, 180], [1, 175, 200, 90],
-      // eyes: a sliver of cream behind each black piece, like the intro's eyes
-      [16, -158, -98, -6], [13, 158, -98, 6],
-      [15, -132, -70, 0], [12, 132, -70, 90],
-      // the smile: reds turned up at the corners, rounded ends outward
-      [11, -138, 80, 28], [6, 138, 80, -28],
-      [8, -68, 192, 8], [0, 68, 192, -8]
-    ]),
-    palette: tilt(at(CX, CY, [
-      // pieces the palette doesn't need tuck under the board and fade,
-      // the way the intro fades the pieces its heart doesn't use
-      [8, 40, 0, 0, "hide"], [6, 40, 0, 0, "hide"], [12, 40, 0, 0, "hide"],
-      [16, 40, 0, 0, "hide"],
-      // the board: 3-5-3 rows of greens, an oval with the dome on top
-      [4, -165, -140, 0], [14, 10, -150, 0], [17, 185, -140, 0],
-      [7, -330, 0, 0], [9, -170, 0, 0], [10, 0, 0, 0], [2, 170, 0, 0], [1, 330, 0, 90],
-      [3, -150, 140, 0], [18, 10, 145, 0], [5, 170, 140, 180],
-      // thumb hole
-      [15, -235, 35, -20],
-      // paint dabs, green showing between them
-      [11, -25, -75, -40],
-      [13, 150, -70, 25],
-      [0, 120, 110, 45]
-    ]), -8, CX, CY)
+  // Each icon: its pieces as [piece, x, y, rotation], and a square frame.
+  var ICONS = {
+    // The smiley at its simplest: two cream eyes and a red smile, the smile's
+    // rounded corner pieces turned out at its ends like the heart's red base.
+    smiley: {
+      pieces: grid([
+        [16, 0, 1], [13, 0, 3],
+        [11, 1.6, 0.4], [8, 2.3, 1.5], [0, 2.3, 2.5], [6, 1.6, 3.6]
+      ]),
+      label: "A cut-paper smiley face"
+    },
+    // A palette: a rounded board of greens, the dome turned down along its
+    // foot, the thumb hole left as a gap in the paper, and three dabs of
+    // paint around the far rim.
+    palette: {
+      pieces: grid([
+        [4, 0, 1], [17, 0, 3],
+        [7, 1, 0], [9, 1, 1], [10, 1, 2], [1, 1, 4],
+        [3, 2, 0], [2, 2, 2], [18, 2, 3],
+        [14, 3, 1.5, 180], [5, 3, 3],
+        [11, 0, 2], [13, 1, 3], [6, 2, 4]
+      ]),
+      label: "A cut-paper painter's palette"
+    }
   };
 
-  // Each picture's frame: a square holding both the intro face it starts as
-  // and the finished picture.
-  var FRAMING = {
-    smiley: { viewBox: "105 235 880 880" },
-    palette: { viewBox: "105 235 880 880" }
-  };
-  var FPS = 7, FRAMES = 10, HOLD = 1.2, MORPH = 1;
+  var FPS = 7, FRAMES = 10;
 
   // Same RNG, seed and frame recipe as the intro.
   var seed = 1234;
@@ -145,28 +95,38 @@
   }
 
   var NS = "http://www.w3.org/2000/svg";
-  function lerp(a, b, t) { return a + (b - a) * t; }
-  function ease(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
-  function xf(x, y, r, s) { return "translate(" + x + " " + y + ") rotate(" + r + ") scale(" + s + ")"; }
+  var PAD = 40; // room round the icon for the boil and for turned pieces
+
+  function bounds(pieces) {
+    var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    pieces.forEach(function (s) {
+      var p = PIECES[s[0]], w = (p.w * 150) / p.h, a = (s[3] * Math.PI) / 180;
+      var hw = (Math.abs(Math.cos(a)) * w + Math.abs(Math.sin(a)) * 150) / 2;
+      var hh = (Math.abs(Math.sin(a)) * w + Math.abs(Math.cos(a)) * 150) / 2;
+      x0 = Math.min(x0, s[1] - hw); x1 = Math.max(x1, s[1] + hw);
+      y0 = Math.min(y0, s[2] - hh); y1 = Math.max(y1, s[2] + hh);
+    });
+    var side = Math.max(x1 - x0, y1 - y0) + PAD * 2;
+    var cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    return [cx - side / 2, cy - side / 2, side, side].join(" ");
+  }
 
   function mount(el, name, opts) {
     opts = opts || {};
-    var layout = LAYOUTS[name];
-    if (!layout) throw new Error("Unknown boil layout: " + name);
+    var icon = ICONS[name];
+    if (!icon) throw new Error("Unknown boil icon: " + name);
     var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    var assemble = opts.from !== "none" && !reduce;
 
     var svg = document.createElementNS(NS, "svg");
-    var frame = FRAMING[name];
-    svg.setAttribute("viewBox", frame.viewBox);
+    svg.setAttribute("viewBox", bounds(icon.pieces));
     svg.setAttribute("role", "img");
-    svg.setAttribute("aria-label", opts.label || (name === "smiley" ? "A cut-paper smiley face" : "A cut-paper painter's palette"));
+    svg.setAttribute("aria-label", opts.label || icon.label);
     svg.style.display = "block";
     svg.style.width = "100%";
     svg.style.height = "100%";
     svg.style.overflow = "visible";
 
-    var nodes = layout.map(function (spot) {
+    var nodes = icon.pieces.map(function (spot) {
       var p = PIECES[spot[0]], n = 150 / p.h;
       var g = document.createElementNS(NS, "g");
       var path = document.createElementNS(NS, "path");
@@ -175,58 +135,38 @@
       path.setAttribute("transform", "translate(" + (-p.w * n / 2) + " -75) scale(" + n + ")");
       g.appendChild(path);
       svg.appendChild(g);
-      var f = p.face;
-      return { g: g, from: [f[0], f[1], f[2], SIZE], to: [spot[1], spot[2], spot[3], SIZE], i: spot[0], hide: spot[4] === "hide" };
+      return { g: g, spot: spot };
     });
     el.appendChild(svg);
 
-    function draw(progress, frame) {
-      var jit = frame == null ? null : JITTER[frame];
+    function draw(frame) {
+      var jit = JITTER[frame];
       nodes.forEach(function (node) {
-        var a = node.from, b = node.to;
-        var j = jit ? jit[node.i] : [0, 0, 0];
-        node.g.setAttribute("transform", xf(
-          lerp(a[0], b[0], progress) + j[0],
-          lerp(a[1], b[1], progress) + j[1],
-          lerp(a[2], b[2], progress) + j[2],
-          SIZE
-        ));
-        if (node.hide) node.g.style.opacity = String(1 - Math.min(1, 1.5 * progress));
+        var s = node.spot, j = jit[s[0]];
+        node.g.setAttribute("transform",
+          "translate(" + (s[1] + j[0]) + " " + (s[2] + j[1]) + ") rotate(" + (s[3] + j[2]) + ") scale(1)");
       });
     }
 
-    if (reduce) { draw(1, null); return { destroy: function () { el.removeChild(svg); } }; }
+    draw(0);
+    if (reduce) return { destroy: function () { el.removeChild(svg); } };
 
-    var raf = 0, start = 0, running = false, lastFrame = -1, lastProgress = -1;
+    // Step the cels at 7 fps, only while the icon is on screen.
+    var raf = 0, start = 0, last = 0;
     function tick(now) {
       if (!start) start = now;
-      var t = (now - start) / 1000;
-      var progress = assemble ? ease(Math.min(1, Math.max(0, (t - HOLD) / MORPH))) : 1;
-      var frame = Math.floor(t * FPS) % FRAMES;
-      // only touch the DOM when the cel actually changes
-      if (frame !== lastFrame || progress !== lastProgress) {
-        draw(progress, frame);
-        lastFrame = frame; lastProgress = progress;
-      }
+      var frame = Math.floor(((now - start) / 1000) * FPS) % FRAMES;
+      if (frame !== last) { draw(frame); last = frame; }
       raf = requestAnimationFrame(tick);
     }
-    function play() { if (!running) { running = true; raf = requestAnimationFrame(tick); } }
+    function play() { if (!raf) raf = requestAnimationFrame(tick); }
+    function stop() { cancelAnimationFrame(raf); raf = 0; }
 
-    draw(assemble ? 0 : 1, 0);
-
-    // Only animate while on screen; the assembly plays the first time it is seen.
-    var io = null, pausedAt = 0;
+    var io = null;
     if ("IntersectionObserver" in window) {
       io = new IntersectionObserver(function (entries) {
-        entries.forEach(function (e) {
-          if (e.isIntersecting) {
-            if (pausedAt && start) start += performance.now() - pausedAt;
-            pausedAt = 0; play();
-          } else if (running) {
-            pausedAt = performance.now(); running = false; cancelAnimationFrame(raf);
-          }
-        });
-      }, { threshold: 0.35 });
+        entries.forEach(function (e) { if (e.isIntersecting) play(); else stop(); });
+      });
       io.observe(el);
     } else {
       play();
@@ -234,7 +174,7 @@
 
     return {
       destroy: function () {
-        cancelAnimationFrame(raf);
+        stop();
         if (io) io.disconnect();
         el.removeChild(svg);
       }
@@ -246,14 +186,11 @@
     for (var i = 0; i < els.length; i++) {
       var el = els[i];
       if (el.__boil) continue;
-      el.__boil = mount(el, el.getAttribute("data-boil"), {
-        from: el.getAttribute("data-boil-from"),
-        label: el.getAttribute("aria-label")
-      });
+      el.__boil = mount(el, el.getAttribute("data-boil"), { label: el.getAttribute("aria-label") });
     }
   }
 
-  window.SelfHealingBoil = { mount: mount, layouts: Object.keys(LAYOUTS) };
+  window.SelfHealingBoil = { mount: mount, icons: Object.keys(ICONS) };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", autoMount);
   else autoMount();
 })();
