@@ -3,13 +3,16 @@
  *
  * Stop-motion "boil" cel animations built from the 19 cut-paper pieces in the
  * intro screen on self-healing.art, driven the same way the intro is:
- *   - each piece is normalised to 150 units tall and centred on its anchor
+ *   - each piece is normalised to 150 units tall and centred on its anchor,
+ *     and every piece stays that one size: pictures are made only by
+ *     placing, overlapping and turning pieces
  *   - every piece sits at translate(x y) rotate(r) scale(s)
  *   - 10 jitter frames are pre-rolled with the same seeded RNG (1234):
  *     +/-4 units of shift and +/-2.5 degrees of turn per piece
  *   - the frames are stepped at 7 fps, so the pieces "boil" like re-shot cels
  *   - pieces start in the intro's face and ease (cubic in-out, 1s, after a
- *     1.2s hold) into the new picture, exactly like the intro's face-to-heart.
+ *     1.2s hold) into the new picture, exactly like the intro's face-to-heart;
+ *     pieces a picture doesn't need fade out under it, as in the intro
  *
  * Usage:
  *   <div data-boil="smiley"></div>
@@ -46,36 +49,32 @@
     /* 18 */ {d:"M0 0 0 89.14 0 122.46 59.13 122.46 106.09 122.46 106.09 65.73 106.09 15.76 106.09 .9 0 0Z",w:106.09,h:122.46,fill:"#64843f",face:[614,1003,0,1]}
   ];
 
-  // Width of a piece once normalised to 150 tall, turned and scaled.
-  function width(i, rot, scale) {
-    var p = PIECES[i];
-    return (Math.abs(rot) % 180 === 90 ? 150 : (p.w * 150) / p.h) * scale;
-  }
+  // Every piece keeps one size, the intro's own: 150 units tall at scale 1.
+  // Pictures are built only by placing, overlapping and turning pieces.
+  var SIZE = 1;
 
-  // Lay pieces edge to edge in a centred row, like strips of cut paper.
-  // Each item is [piece, rotation?, nudgeX?, nudgeY?].
-  function row(cx, y, scale, items, overlap) {
-    overlap = overlap || 0;
-    var ws = items.map(function (it) { return width(it[0], it[1] || 0, scale); });
-    var total = ws.reduce(function (a, b) { return a + b; }, 0) - overlap * (items.length - 1);
-    var x = cx - total / 2;
-    return items.map(function (it, k) {
-      var spot = [it[0], x + ws[k] / 2 + (it[2] || 0), y + (it[3] || 0), it[1] || 0, scale];
-      x += ws[k] - overlap;
-      return spot;
-    });
-  }
-
-  // Spread pieces along an ellipse. Each item is [piece, angle, rotation, scale].
-  function arc(cx, cy, rx, ry, items) {
+  // Place pieces around an ellipse, each turned so its top edge faces out.
+  // Each item is [piece, angle, extraTurn?].
+  function ring(cx, cy, rx, ry, items) {
     return items.map(function (it) {
       var a = (it[1] * Math.PI) / 180;
-      return [it[0], cx + rx * Math.cos(a), cy + ry * Math.sin(a), it[2], it[3]];
+      return [it[0], cx + rx * Math.cos(a), cy + ry * Math.sin(a), it[1] + 90 + (it[2] || 0)];
     });
   }
 
-  // Rotate a whole layout around a point, baking the turn into each piece so
-  // the boil and the assembly still work per piece.
+  // Place pieces along an arc, each turned so its bottom edge faces out
+  // (used for the grin). Each item is [piece, angle, extraTurn?].
+  function smile(cx, cy, r, items) {
+    return items.map(function (it) {
+      var a = (it[1] * Math.PI) / 180;
+      return [it[0], cx + r * Math.cos(a), cy + r * Math.sin(a), it[1] - 90 + (it[2] || 0)];
+    });
+  }
+
+  // Each layout is a draw-ordered list of [piece, x, y, rotation], in the same
+  // coordinate space as the intro face (centre ~ 545, 675).
+  var CX = 545, CY = 675;
+  // Turn a whole layout around a point, baking the turn into each piece.
   function tilt(layout, deg, cx, cy) {
     var a = (deg * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a);
     return layout.map(function (p) {
@@ -84,49 +83,51 @@
     });
   }
 
-  // Each layout is a draw-ordered list of [piece, x, y, rotation, scale],
-  // in the same coordinate space as the intro face (centre ~ 545, 675).
-  var CX = 545, CY = 675;
+  function at(cx, cy, items) {
+    return items.map(function (it) { return [it[0], cx + it[1], cy + it[2], it[3] || 0, it[4]]; });
+  }
+
   var LAYOUTS = {
-    smiley: [].concat(
-      // head: the dome on top, then rows of 3-4-3 greens for a round face,
-      // curved corners turned outward
-      row(CX, CY - 192, 0.85, [[14]]),
-      row(CX, CY - 64, 0.85, [[4], [9], [17]], 4),
-      row(CX, CY + 64, 0.85, [[7, 0, 16, -4], [3], [10], [2, 0, -16, -4]], 18),
-      row(CX, CY + 190, 0.85, [[18], [5], [1, 90]], 4),
-      // eyes: the intro's two black pieces, mirrored so the round sides face down
-      [[15, CX - 92, CY - 70, 0, 0.5], [12, CX + 92, CY - 70, 90, 0.48]],
-      // little cream glints, the intro's cream pieces
-      [[16, CX - 108, CY - 94, 0, 0.17], [13, CX + 76, CY - 94, 0, 0.17]],
-      // the grin: the intro's red mouth row, rounded corners down, like a "D"
-      row(CX, CY + 95, 0.52, [[11, 8, 0, -8], [8, 0, 0, 2], [0, 0, 0, 2], [6, -8, 0, -8]], 6)
-    ),
-    palette: tilt([].concat(
-      // board: a kidney of greens, the right lobe fuller, a notch bottom-left
-      row(CX + 25, CY - 120, 0.8, [[4], [14], [1]], 10),
-      row(CX + 10, CY, 0.8, [[3], [9], [10], [2], [17, 90]], 10),
-      row(CX + 110, CY + 118, 0.8, [[7], [18], [5]], 10),
-      // thumb hole, by the notch
-      [[15, CX - 185, CY + 40, 0, 0.5]],
-      // paint dabs on an arc around the board, opposite the thumb hole
-      arc(CX + 55, CY, 190, 105, [
-        [11, -150, -12, 0.46],
-        [13, -112, 8, 0.44],
-        [0, -72, -6, 0.46],
-        [12, -32, 20, 0.42],
-        [16, 10, -10, 0.44],
-        [8, 52, 12, 0.42],
-        [6, 92, -8, 0.42]
-      ])
-    ), -6, CX + 30, CY)
+    // Built like the intro face: a rough grid of full-size pieces, with the
+    // features as cells in the grid.
+    smiley: at(CX, CY, [
+      // forehead: cut corner, dome, curved corner
+      [4, -175, -205, 0], [14, 0, -215, 0], [17, 175, -205, 0],
+      // eye row and mouth-corner row, greens at the edges and between
+      [7, -268, -70, 0], [9, 0, -70, 0], [2, 268, -70, 0],
+      [3, -262, 72, 0], [10, 0, 66, 0], [18, 262, 72, 0],
+      // chin: rounded corners turned down
+      [5, -165, 205, 180], [1, 175, 200, 90],
+      // eyes: a sliver of cream behind each black piece, like the intro's eyes
+      [16, -158, -98, -6], [13, 158, -98, 6],
+      [15, -132, -70, 0], [12, 132, -70, 90],
+      // the smile: reds turned up at the corners, rounded ends outward
+      [11, -138, 80, 28], [6, 138, 80, -28],
+      [8, -68, 192, 8], [0, 68, 192, -8]
+    ]),
+    palette: tilt(at(CX, CY, [
+      // pieces the palette doesn't need tuck under the board and fade,
+      // the way the intro fades the pieces its heart doesn't use
+      [8, 40, 0, 0, "hide"], [6, 40, 0, 0, "hide"], [12, 40, 0, 0, "hide"],
+      [16, 40, 0, 0, "hide"],
+      // the board: 3-5-3 rows of greens, an oval with the dome on top
+      [4, -165, -140, 0], [14, 10, -150, 0], [17, 185, -140, 0],
+      [7, -330, 0, 0], [9, -170, 0, 0], [10, 0, 0, 0], [2, 170, 0, 0], [1, 330, 0, 90],
+      [3, -150, 140, 0], [18, 10, 145, 0], [5, 170, 140, 180],
+      // thumb hole
+      [15, -235, 35, -20],
+      // paint dabs, green showing between them
+      [11, -25, -75, -40],
+      [13, 150, -70, 25],
+      [0, 120, 110, 45]
+    ]), -8, CX, CY)
   };
 
-  // Each picture's frame (a square around its finished bounds) and how much
-  // the intro face is shrunk about its centre so it starts inside that frame.
+  // Each picture's frame: a square holding both the intro face it starts as
+  // and the finished picture.
   var FRAMING = {
-    smiley: { viewBox: "220 353 650 650", face: 0.74 },
-    palette: { viewBox: "187 295 740 740", face: 0.84 }
+    smiley: { viewBox: "105 235 880 880" },
+    palette: { viewBox: "105 235 880 880" }
   };
   var FPS = 7, FRAMES = 10, HOLD = 1.2, MORPH = 1;
 
@@ -174,9 +175,8 @@
       path.setAttribute("transform", "translate(" + (-p.w * n / 2) + " -75) scale(" + n + ")");
       g.appendChild(path);
       svg.appendChild(g);
-      var k = frame.face, f = p.face;
-      var from = [CX + (f[0] - CX) * k, CY + (f[1] - CY) * k, f[2], f[3] * k];
-      return { g: g, from: from, to: spot.slice(1), i: spot[0] };
+      var f = p.face;
+      return { g: g, from: [f[0], f[1], f[2], SIZE], to: [spot[1], spot[2], spot[3], SIZE], i: spot[0], hide: spot[4] === "hide" };
     });
     el.appendChild(svg);
 
@@ -189,8 +189,9 @@
           lerp(a[0], b[0], progress) + j[0],
           lerp(a[1], b[1], progress) + j[1],
           lerp(a[2], b[2], progress) + j[2],
-          lerp(a[3], b[3], progress)
+          SIZE
         ));
+        if (node.hide) node.g.style.opacity = String(1 - Math.min(1, 1.5 * progress));
       });
     }
 
